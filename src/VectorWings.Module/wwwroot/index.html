@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="matgame-game" content="vectorwings">
+<meta content="" name="matgame-version" />
+<base href="/vectorwings/">
+<title>VectorWings</title>
+<link rel="icon" href="img/mark.svg">
+<link rel="stylesheet" href="flight.css">
+<script type="module" src="flight.js"></script>
+</head>
+<body>
+<canvas id="flight" aria-label="3D-Flugansicht"></canvas>
+<div id="shade"></div>
+<header id="masthead">
+    <a class="brand" href="./"><img src="img/mark.svg" alt=""> VECTORWINGS</a>
+    <div class="row"><span id="network">Verbindung wird geprüft</span><button id="sound" aria-pressed="true">Ton an</button><a id="portal" href="/">MatGame ↗</a></div>
+</header>
+<main id="menu">
+    <section class="intro">
+        <h1>Vector<span>Wings</span></h1>
+        <p>Flieg tief über bewohnte Welten, stell dich den Bossen und miss dich im Frachthafen.</p>
+        <p id="progress" hidden></p>
+    </section>
+    <div class="panels">
+        <section class="panel" id="briefing">
+            <div class="heading"><h2>Flugplan</h2><span>1–4 Piloten</span></div>
+            <div class="row" id="modes" aria-label="Spielmodus">
+                <button data-mode="Campaign" aria-pressed="true">Kampagne</button><button data-mode="Cores" aria-pressed="false">Schildkerne</button><button data-mode="Timed" aria-pressed="false">Treffer auf Zeit</button>
+            </div>
+            <div class="route" id="missions">
+                <button class="mission river" data-mission="0" aria-pressed="true"><strong>Flusshafen</strong><small>Canyon und Frachtbrücke</small></button>
+                <button class="mission desert" data-mission="1" aria-pressed="false"><strong>Wüstenbahn</strong><small>Eskorte im Canyon</small></button>
+                <button class="mission orbit" data-mission="2" aria-pressed="false"><strong>Orbitalwerft</strong><small>Dockkorridor im Orbit</small></button>
+                <button class="mission city" data-mission="3" aria-pressed="false"><strong>Abendstadt</strong><small>Evakuierung über den Dächern</small></button>
+            </div>
+            <p id="rule" hidden></p>
+            <div class="row launch"><button class="primary" id="create" disabled>Lobby eröffnen</button><label id="bots-label"><input id="bots" type="checkbox" checked> Mit Bots auffüllen</label></div>
+        </section>
+        <section class="panel" id="online-panel">
+            <div class="heading"><h2>Partien</h2><button id="refresh" aria-label="Partien aktualisieren">↻</button></div>
+            <form id="guest" hidden>
+                <p>Spiele mit deinem MatGame-Konto oder als Gast.</p>
+                <label>Pilotenname<input name="name" required maxlength="32" autocomplete="nickname"></label>
+                <div class="row launch"><button type="submit">Gastzugang</button><a href="/Account/Login?returnUrl=%2Fvectorwings%2F" id="login">Anmelden</a></div>
+            </form>
+            <form class="row join" id="join" hidden>
+                <label>Raumcode<input id="room-code" maxlength="6" required spellcheck="false"></label><button type="submit">Beitreten</button>
+            </form>
+            <div id="rooms"></div>
+            <form id="server-form" hidden>
+                <label>MatGame-Server<input name="server" placeholder="https://games.matthix.de"></label>
+                <div class="row launch"><button type="submit">Verbinden</button><button type="button" id="offline">Offline spielen</button></div>
+                <button type="button" id="link" hidden>Gerät verknüpfen</button>
+            </form>
+        </section>
+        <section class="panel" id="lobby" hidden>
+            <div class="heading"><h2 id="lobby-title">Lobby</h2><strong id="lobby-code"></strong></div>
+            <p id="lobby-briefing"></p><ul id="lobby-pilots"></ul>
+            <div class="row"><button class="primary" id="launch">Starten</button><button id="lobby-leave">Verlassen</button></div>
+        </section>
+    </div>
+    <footer><span>WASD · Leertaste feuert · Umschalt beschleunigt · Strg bremst · Q rollt · C wechselt die Kamera</span><span>Gamepad · A feuert · RB beschleunigt · LB bremst · X rollt · Y wechselt die Kamera</span><small id="version"></small></footer>
+</main>
+<p id="notice" role="status" aria-live="polite"></p>
+<section id="hud" aria-label="Instrumente" hidden>
+    <div id="cockpit" aria-hidden="true"></div>
+    <div class="hud-head">
+        <div><strong id="hud-name"></strong><div id="hud-shield"></div><small id="hud-weapon"></small></div>
+        <div id="boss-hud" hidden><strong id="boss-name"></strong><progress id="boss-health" aria-label="Boss"></progress><small id="boss-phase"></small></div>
+        <div class="score"><small>PUNKTE</small><strong id="hud-score"></strong><span id="hud-time"></span></div>
+    </div>
+    <div id="reticle" aria-hidden="true"></div>
+    <div class="hud-foot"><div id="radio"></div><span class="hud-actions"><button id="camera" aria-pressed="false">Cockpit [C]</button><button id="quit">Verlassen</button></span></div>
+</section>
+<section id="result" class="panel" aria-labelledby="result-title" hidden>
+    <h2 id="result-title"></h2><p id="result-detail"></p><button class="primary" id="result-close">Zum Flugplan</button>
+</section>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/VectorWings.Core/VectorWings.Core.csproj" />
+  <Project Path="src/VectorWings.Module/VectorWings.Module.csproj" />
+  <Project Path="src/VectorWings.Local/VectorWings.Local.csproj" />
+  <Project Path="src/VectorWings.App/VectorWings.App.csproj" />
+  <Project Path="tests/VectorWings.Tests/VectorWings.Tests.csproj" />
+</Solution>

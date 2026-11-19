@@ -1,0 +1,23 @@
+name: vectorwings-local
+services:
+  web:
+    extends:
+      file: compose.yml
+      service: web
+    image: vectorwings:local
+    build:
+      context: .
+      additional_contexts:
+        matgame: ../MatGame
+  db:
+    extends:
+      file: compose.yml
+      service: db
+  pgadmin:
+    extends:
+      file: compose.dev.yml
+      service: pgadmin
+volumes:
+  web:
+  db:
+  pgadmin:

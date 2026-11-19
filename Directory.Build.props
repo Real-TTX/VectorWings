@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Channel Condition="'$(Channel)' == ''">local</Channel>
+    <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
+    <BuildDate Condition="'$(BuildDate)' == ''">$([System.DateTime]::UtcNow.ToString('yyyyMMdd'))</BuildDate>
+    <Version>0.1.$(BuildNumber)</Version>
+    <InformationalVersion>local-$(BuildDate)</InformationalVersion>
+    <InformationalVersion Condition="'$(Channel)' == 'release'">$(Version)-$(BuildDate)</InformationalVersion>
+    <InformationalVersion Condition="'$(Channel)' == 'nightly'">nightly-$(BuildNumber)-$(BuildDate)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <MatGameDefaultServer Condition="'$(MatGameDefaultServer)' == ''">https://games.matthix.de</MatGameDefaultServer>
+  </PropertyGroup>
+</Project>

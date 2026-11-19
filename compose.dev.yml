@@ -1,0 +1,23 @@
+name: vectorwings-dev
+services:
+  web:
+    extends:
+      file: compose.yml
+      service: web
+    image: ghcr.io/real-ttx/vectorwings:nightly
+  db:
+    extends:
+      file: compose.yml
+      service: db
+  pgadmin:
+    image: dpage/pgadmin4:9
+    entrypoint: ["/bin/sh", "-ec", "exec env PGADMIN_DEFAULT_EMAIL=admin@vectorwings.example.com PGADMIN_DEFAULT_PASSWORD=matgame /entrypoint.sh"]
+    ports: ["127.0.0.1:2778:80"]
+    volumes: ["pgadmin:/var/lib/pgadmin"]
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  web:
+  db:
+  pgadmin:

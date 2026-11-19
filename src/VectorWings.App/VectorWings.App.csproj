@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>VectorWings</AssemblyName>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="MatGameDefaultServer" Value="$(MatGameDefaultServer)" />
+    <ProjectReference Include="../../../MatGame/src/MatGame.Shell/MatGame.Shell.csproj" />
+    <ProjectReference Include="../VectorWings.Local/VectorWings.Local.csproj" />
+    <EmbeddedResource Include="../VectorWings.Module/wwwroot/**" LogicalName="web/vectorwings/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Import Project="../../../MatGame/src/MatGame.Shell/MatGame.Shell.targets" />
+</Project>

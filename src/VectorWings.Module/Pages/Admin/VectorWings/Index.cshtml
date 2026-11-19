@@ -1,0 +1,63 @@
+@page "/Admin/VectorWings"
+@model VectorWings.Module.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "VectorWings";
+}
+
+<h1>VectorWings</h1>
+<form method="get" class="md-toolbar">
+    <label>Suche <input class="md-input" name="query" value="@Model.Query" /></label>
+    <label>Bereich <select class="md-input" asp-for="View">
+        <option value="">Alle Bereiche</option><option value="live">Laufende Partien</option>
+        <option value="history">Ergebnisse</option><option value="players">Spieler</option>
+    </select></label>
+    <label>Spieler sortieren <select class="md-input" asp-for="Sort">
+        <option value="">Name</option><option value="score">Punkte</option>
+    </select></label>
+    <button class="md-button" type="submit">Anwenden</button>
+</form>
+@if (Model.View is not ("history" or "players"))
+{
+    <h2>Laufende Partien</h2>
+    <md-table><thead><tr><th>Code</th><th>Mission</th><th>Modus</th><th>Piloten</th></tr></thead><tbody>
+    @foreach (var room in Model.Rooms)
+    {
+        <tr><td>@room.Code</td><td>@room.Mission</td><td>@room.Mode</td><td>@room.Humans</td></tr>
+    }
+    </tbody></md-table>
+    @if (Model.Rooms.Length > 0)
+    {
+        <form method="post" asp-page-handler="End">
+            <label>Partie <select name="code">
+                @foreach (var room in Model.Rooms)
+                {
+                    <option value="@room.Code">@room.Code · @room.Mission</option>
+                }
+            </select></label>
+            <button class="md-button" type="submit">Partie beenden</button>
+        </form>
+    }
+    else { <p>Keine laufenden Partien.</p> }
+}
+@if (Model.View is not ("live" or "players"))
+{
+    <h2>Letzte Ergebnisse</h2>
+    <md-table><thead><tr><th>ID</th><th>Modus</th><th>Mission</th><th>Ergebnis</th><th>Piloten</th><th>Datum (UTC)</th></tr></thead><tbody>
+    @foreach (var result in Model.Results)
+    {
+        <tr><td>@result.Id</td><td>@result.Mode</td><td>@(result.Mission < 0 ? Missions.Arena.Name : Missions.Campaign[result.Mission].Name)</td>
+            <td>@(result.Success switch {true => "Gewonnen", false => "Verloren", null => "Abgebrochen"})</td>
+            <td>@result.Participants</td><td>@result.Date.ToString("dd.MM.yyyy HH:mm")</td></tr>
+    }
+    </tbody></md-table>
+}
+@if (Model.View is not ("live" or "history"))
+{
+    <h2>Spieler</h2>
+    <md-table><thead><tr><th>Name</th><th>Partien</th><th>Missionen</th><th>Bestwert</th></tr></thead><tbody>
+    @foreach (var player in Model.Players)
+    {
+        <tr><td>@player.Name</td><td>@player.Progress.Matches</td><td>@player.Progress.Missions</td><td>@player.Progress.BestScore</td></tr>
+    }
+    </tbody></md-table>
+}

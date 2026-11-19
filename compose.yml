@@ -1,0 +1,23 @@
+name: vectorwings
+services:
+  web:
+    image: ghcr.io/real-ttx/vectorwings:latest
+    ports: ["2776:2776"]
+    volumes: ["web:/data"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  db:
+    image: postgres:17
+    entrypoint: ["/bin/sh", "-ec", "exec env POSTGRES_USER=matgame POSTGRES_PASSWORD=matgame POSTGRES_DB=matgame docker-entrypoint.sh postgres"]
+    volumes: ["db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD","pg_isready","-U","matgame","-d","matgame","-h","127.0.0.1"]
+      interval: 4s
+      timeout: 3s
+      retries: 25
+    restart: unless-stopped
+volumes:
+  web:
+  db:

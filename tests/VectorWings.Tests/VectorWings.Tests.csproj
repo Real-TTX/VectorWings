@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <ProjectReference Include="../../src/VectorWings.Core/VectorWings.Core.csproj" />
+    <ProjectReference Include="../../src/VectorWings.Module/VectorWings.Module.csproj" />
+    <ProjectReference Include="../../src/VectorWings.Local/VectorWings.Local.csproj" />
+  </ItemGroup>
+</Project>

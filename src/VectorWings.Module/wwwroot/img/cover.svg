@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420">
+<rect width="880" height="420" fill="#14254a"/>
+<path d="M0 190 204 135 418 202 609 115 880 151V420H0Z" fill="#344e84"/>
+<path d="M0 260 165 192 262 312 493 380 688 260 880 172V420H0Z" fill="#865975"/>
+<path d="M0 312 109 229 178 271 225 348 397 363 618 420H0Z" fill="#583d58"/>
+<path d="M852 210 678 270 599 362 397 369 347 420H880V210Z" fill="#9a6258"/>
+<path d="M410 234 474 248 525 315 677 420H108L353 315Z" fill="#347d9b"/>
+<path d="M469 258 447 322 280 420H337L492 316Z" fill="#5aafbe"/>
+<path d="M367 330 527 267 653 324 552 318 491 359 465 336Z" fill="#e1eaff"/>
+<path d="M475 325 527 267 552 318 491 359Z" fill="#5378bf"/>
+<path d="M491 359 514 336 499 392Z" fill="#71f2ff"/>
+<path d="m58 51 46 63 45-71-40 28-8 23-15-29z" fill="#ff9557"/>
+<text x="160" y="109" fill="#fff3e2" font-family="sans-serif" font-size="72" font-weight="900" letter-spacing="-4">VECTORWINGS</text>
+</svg>
