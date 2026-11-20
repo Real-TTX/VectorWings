@@ -18,6 +18,7 @@ export class Input {
         this.rollHeld = { left: 0, right: 0 };
         this.padPrevious = [];
         this.touch = installTouch(this);
+        this.mouse = installMouse(this);
         addEventListener('keydown', event => {
             if (!this.enabled || !ALL.has(event.code)) return;
             if (event.target?.closest?.('input,textarea,select')) return;
@@ -35,6 +36,7 @@ export class Input {
     }
 
     reset() {
+        this.mouse?.reset();
         this.keys.clear();
         this.pulses.clear();
         this.touch.reset();
@@ -54,17 +56,17 @@ export class Input {
         const axis = i => { const v = pad?.axes[i] ?? 0; return Math.abs(v) < .16 ? 0 : v; };
         const button = i => !!pad?.buttons[i]?.pressed;
         const pressed = i => button(i) && !this.padPrevious[i];
-        const touch = this.touch;
-        let x = (this.held('right') ? 1 : 0) - (this.held('left') ? 1 : 0) || touch.x || axis(0) || (button(15) ? 1 : 0) - (button(14) ? 1 : 0);
-        let y = (this.held('up') ? 1 : 0) - (this.held('down') ? 1 : 0) || touch.y || -axis(1) || (button(12) ? 1 : 0) - (button(13) ? 1 : 0);
+        const touch = this.touch, mouse = this.mouse;
+        let x = (this.held('right') ? 1 : 0) - (this.held('left') ? 1 : 0) || touch.x || axis(0) || (button(15) ? 1 : 0) - (button(14) ? 1 : 0) || mouse.x;
+        let y = (this.held('up') ? 1 : 0) - (this.held('down') ? 1 : 0) || touch.y || -axis(1) || (button(12) ? 1 : 0) - (button(13) ? 1 : 0) || mouse.y;
         if (this.invertY) y = -y;
         const out = {
             x: Math.max(-1, Math.min(1, x)), y: Math.max(-1, Math.min(1, y)),
-            fire: this.held('fire') || button(0) || touch.held('fire'),
-            charge: this.held('charge') || button(2) || touch.held('charge'),
+            fire: this.held('fire') || button(0) || touch.held('fire') || mouse.left,
+            charge: this.held('charge') || button(2) || touch.held('charge') || mouse.right,
             boost: this.held('boost') || button(5) || touch.held('boost'),
             brake: this.held('brake') || button(4) || touch.held('brake'),
-            bomb: this.pulses.has('bomb') || pressed(1) || touch.pulse('bomb'),
+            bomb: this.pulses.has('bomb') || pressed(1) || touch.pulse('bomb') || mouse.take('bomb'),
             loop: this.pulses.has('loop') || pressed(3) || touch.pulse('loop'),
             camera: this.pulses.has('camera') || pressed(8),
             pause: this.pulses.has('pause') || pressed(9),
@@ -81,6 +83,8 @@ export class Input {
                 this.rollHeld[side] = 0;
             }
         }
+        const wheel = mouse.take('rollLeft') ? -1 : mouse.take('rollRight') ? 1 : 0;
+        if (wheel) out.roll = wheel;
         if (touch.pulse('roll')) out.roll = out.x < -.2 ? -1 : out.x > .2 ? 1 : (this.lastRoll = -(this.lastRoll || 1));
         this.padPrevious = pad ? pad.buttons.map(b => b.pressed) : [];
         this.pulses.clear();
@@ -149,5 +153,60 @@ function installTouch(input) {
             });
     }
     void input;
+    return state;
+}
+
+/** Mouse in flight: the pointer's offset from the centre is the stick, left fires, right charges, wheel click bombs, wheel rolls. */
+function installMouse(input) {
+    const canvas = document.getElementById('flight');
+    const marker = document.getElementById('mouse-aim');
+    const pulses = new Set();
+    const state = {
+        x: 0, y: 0, left: false, right: false, active: false,
+        enabled: localStorage.getItem('vectorwings.mouse') !== '0',
+        take(name) { const had = pulses.has(name); pulses.delete(name); return had; },
+        reset() { state.left = state.right = false; state.x = state.y = 0; pulses.clear(); state.active = false; show(); }
+    };
+    function show() {
+        const on = state.enabled && state.active && input.enabled;
+        document.body.classList.toggle('mouse-flight', on);
+        if (marker) marker.hidden = !on;
+    }
+    function move(event) {
+        if (event.pointerType !== 'mouse' || !input.enabled || !state.enabled) return;
+        const rect = canvas.getBoundingClientRect();
+        const reach = Math.min(rect.width, rect.height) * .34;
+        const x = (event.clientX - rect.left - rect.width / 2) / reach, y = -(event.clientY - rect.top - rect.height / 2) / reach;
+        const length = Math.hypot(x, y);
+        const dead = .07;
+        const k = length < dead ? 0 : Math.min(1, (length - dead) / (1 - dead)) / (length || 1);
+        state.x = x * k;
+        state.y = y * k;
+        state.active = true;
+        if (marker) marker.style.transform = 'translate(' + event.clientX + 'px, ' + event.clientY + 'px)';
+        show();
+    }
+    addEventListener('pointermove', move);
+    canvas.addEventListener('pointerdown', event => {
+        if (event.pointerType !== 'mouse' || !input.enabled || !state.enabled) return;
+        event.preventDefault();
+        move(event);
+        if (event.button === 0) state.left = true;
+        if (event.button === 2) state.right = true;
+        if (event.button === 1) pulses.add('bomb');
+    });
+    addEventListener('pointerup', event => {
+        if (event.pointerType !== 'mouse') return;
+        if (event.button === 0) state.left = false;
+        if (event.button === 2) state.right = false;
+    });
+    canvas.addEventListener('contextmenu', event => { if (input.enabled) event.preventDefault(); });
+    canvas.addEventListener('auxclick', event => { if (input.enabled) event.preventDefault(); });
+    canvas.addEventListener('wheel', event => {
+        if (!input.enabled || !state.enabled) return;
+        event.preventDefault();
+        pulses.add(event.deltaY < 0 ? 'rollLeft' : 'rollRight');
+    }, { passive: false });
+    setInterval(show, 300);
     return state;
 }

@@ -331,3 +331,9 @@ body.touch #touch-controls { display: block }
 .profile-preview strong { font-family: var(--display); font-style: italic; font-size: clamp(1.6rem, 4vw, 2.6rem) }
 .profile-preview small { font-family: var(--display); font-style: italic; letter-spacing: .2em; color: var(--cyan) }
 @media (max-width: 860px) { .profile-grid { grid-template-columns: 1fr } .profile-preview { display: none } }
+
+/* Mouse flight */
+body.mouse-flight #flight { cursor: none }
+#mouse-aim { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 6 }
+#mouse-aim::before { content: ""; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ffffffcc; box-shadow: 0 0 6px #000a }
+#mouse-aim::after { content: ""; position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: #fff }

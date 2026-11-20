@@ -358,6 +358,8 @@ class App {
         $('set-music').oninput = e => { this.audio.unlock(); this.audio.musicVolume = e.target.value / 100; this.audio.updateVolume(); };
         $('set-invert').onchange = e => this.input.setInvert(e.target.checked);
         $('set-cockpit').onchange = e => localStorage.setItem('vectorwings.camera', e.target.checked ? 'cockpit' : 'chase');
+        $('set-mouse').checked = this.input.mouse.enabled;
+        $('set-mouse').onchange = e => { this.input.mouse.enabled = e.target.checked; localStorage.setItem('vectorwings.mouse', e.target.checked ? '1' : '0'); };
         $('set-quality').onchange = e => localStorage.setItem('vectorwings.quality', e.target.value);
     }
 

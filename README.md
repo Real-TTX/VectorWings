@@ -32,6 +32,7 @@ docker compose -f compose.local.yml up -d --build     # lokal gebaut (MatGame li
 
 | | Tastatur | Gamepad | Touch |
 |---|---|---|---|
+| **Maus** (Optionen → Maussteuerung) | Zeiger um die Bildmitte steuert, links feuert, rechts halten lädt, Rad drücken bombt, Rad drehen rollt | | |
 | Steuern | WASD / Pfeile | linker Stick | Stick |
 | Laser (halten = Dauerfeuer) | Leertaste | A | Feuer |
 | Zielsuchschuss (halten, loslassen) | F | X | Lock |

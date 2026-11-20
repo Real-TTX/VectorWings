@@ -151,6 +151,7 @@
             <label class="row-option">MUSIK<input type="range" id="set-music" min="0" max="100" data-nav></label>
             <label class="row-option toggle"><input type="checkbox" id="set-invert" data-nav> HÖHENRUDER UMKEHREN</label>
             <label class="row-option toggle"><input type="checkbox" id="set-cockpit" data-nav> COCKPIT-KAMERA</label>
+            <label class="row-option toggle"><input type="checkbox" id="set-mouse" data-nav> MAUSSTEUERUNG IM FLUG</label>
             <label class="row-option">GRAFIK<select id="set-quality" data-nav><option value="auto">AUTOMATISCH</option><option value="high">HOCH</option><option value="medium">MITTEL</option><option value="low">NIEDRIG</option></select></label>
             <button class="slab" id="sound" data-nav>TON AN</button>
             <button class="slab" id="portal" data-nav>ZUM MATGAME-PORTAL</button>
@@ -162,15 +163,15 @@
         <h2 class="title">STEUERUNG</h2>
         <div class="frame help">
             <table>
-                <tr><th></th><th>TASTATUR</th><th>GAMEPAD</th><th>TOUCH</th></tr>
-                <tr><td>Steuern</td><td>WASD / Pfeile</td><td>Linker Stick</td><td>Stick</td></tr>
-                <tr><td>Laser (halten = Dauerfeuer)</td><td>Leertaste</td><td>A</td><td>Feuer</td></tr>
-                <tr><td>Zielsuchschuss</td><td>F halten, loslassen</td><td>X halten</td><td>Lock</td></tr>
-                <tr><td>Smart-Bombe (nochmal = zünden)</td><td>B</td><td>B</td><td>Bombe</td></tr>
-                <tr><td>Boost / Bremse</td><td>Umschalt / Strg</td><td>RB / LB</td><td>Boost / Bremse</td></tr>
-                <tr><td>Fassrolle (antippen) / Neigen (halten)</td><td>Q / E</td><td>LT / RT</td><td>Rolle</td></tr>
-                <tr><td>Looping / Wende</td><td>R</td><td>Y</td><td>Looping</td></tr>
-                <tr><td>Kamera · Pause</td><td>C · Esc</td><td>Back · Start</td><td>II</td></tr>
+                <tr><th></th><th>TASTATUR</th><th>MAUS</th><th>GAMEPAD</th><th>TOUCH</th></tr>
+                <tr><td>Steuern</td><td>WASD / Pfeile</td><td>Zeiger um die Bildmitte</td><td>Linker Stick</td><td>Stick</td></tr>
+                <tr><td>Laser (halten = Dauerfeuer)</td><td>Leertaste</td><td>Linke Taste</td><td>A</td><td>Feuer</td></tr>
+                <tr><td>Zielsuchschuss</td><td>F halten, loslassen</td><td>Rechte Taste halten</td><td>X halten</td><td>Lock</td></tr>
+                <tr><td>Smart-Bombe (nochmal = zünden)</td><td>B</td><td>Mausrad drücken</td><td>B</td><td>Bombe</td></tr>
+                <tr><td>Boost / Bremse</td><td>Umschalt / Strg</td><td>–</td><td>RB / LB</td><td>Boost / Bremse</td></tr>
+                <tr><td>Fassrolle (antippen) / Neigen (halten)</td><td>Q / E</td><td>Mausrad drehen</td><td>LT / RT</td><td>Rolle</td></tr>
+                <tr><td>Looping / Wende</td><td>R</td><td>–</td><td>Y</td><td>Looping</td></tr>
+                <tr><td>Kamera · Pause</td><td>C · Esc</td><td>–</td><td>Back · Start</td><td>II</td></tr>
             </table>
             <p class="hint">Silberring +30 Schild · Goldring +30, jeder dritte ein Extraleben · grüner Leuchtring +50 · rote Kapsel Bombe · blaue Kapsel Laserstufe</p>
         </div>
@@ -197,6 +198,7 @@
     <div id="reticle-near" class="reticle near" hidden></div>
     <div id="reticle-far" class="reticle far" hidden></div>
     <div id="lock" hidden></div>
+    <div id="mouse-aim" hidden></div>
     <div id="tags"></div>
     <div id="popups"></div>
     <div id="card" hidden><strong id="card-title"></strong><span id="card-sub"></span></div>
