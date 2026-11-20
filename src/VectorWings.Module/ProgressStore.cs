@@ -4,8 +4,12 @@ using VectorWings.Core;
 
 namespace VectorWings.Module;
 
-/// <summary>A pilot's record: matches, cleared missions, best score, best score per mission and the medals.</summary>
-public sealed record Progress(int Matches, int Missions, int BestScore, int[] Cleared, Dictionary<int, int> Best, int[] Medals);
+/// <summary>
+/// A pilot's record: matches, cleared missions, best score (overall and per mission), medals, the pilot file (null until saved),
+/// the missions an administrator granted and the missions the pilot may fly (open ways on the map plus the granted ones).
+/// </summary>
+public sealed record Progress(int Matches, int Missions, int BestScore, int[] Cleared, Dictionary<int, int> Best, int[] Medals,
+    PilotProfile? Pilot, int[] Granted, int[] Unlocked);
 public sealed record ResultRow(long Id, string Mode, int Mission, bool? Success, bool Medal, DateTime Date, int Participants);
 public sealed record ProgressRow(long AccountId, string Name, Progress Progress);
 
@@ -43,6 +47,17 @@ public sealed class ProgressStore(NpgsqlDataSource database)
             );
             ALTER TABLE vectorwings."PilotResult" ADD COLUMN IF NOT EXISTS "Hits" integer NOT NULL DEFAULT 0;
             CREATE INDEX IF NOT EXISTS "PilotResult_AccountId" ON vectorwings."PilotResult" ("AccountId");
+            CREATE TABLE IF NOT EXISTS vectorwings."Pilot" (
+              "Id" bigint PRIMARY KEY,
+              "Callsign" text NULL,
+              "Avatar" text NULL,
+              "Ship" integer NOT NULL DEFAULT 0,
+              "Granted" integer[] NOT NULL DEFAULT '{}',
+              "CreateDate" timestamptz NOT NULL DEFAULT now(),
+              "UpdateDate" timestamptz NOT NULL DEFAULT now(),
+              "CreateUserId" bigint NOT NULL DEFAULT 0,
+              "UpdateUserId" bigint NOT NULL DEFAULT 0
+            );
             """);
         await command.ExecuteNonQueryAsync(ct);
     }
@@ -83,13 +98,63 @@ public sealed class ProgressStore(NpgsqlDataSource database)
         finally { writes.Release(); }
     }
 
+    /// <summary>Saves the pilot file (call sign, portrait, ship); actor = who changes it (the pilot or an administrator).</summary>
+    public async Task SavePilotAsync(long accountId, PilotProfile profile, long actor, CancellationToken ct)
+    {
+        await using var command = database.CreateCommand("""
+            INSERT INTO vectorwings."Pilot" ("Id", "Callsign", "Avatar", "Ship", "CreateUserId", "UpdateUserId")
+            VALUES ($1, $2, $3, $4, $5, $5)
+            ON CONFLICT ("Id") DO UPDATE SET "Callsign" = $2, "Avatar" = $3, "Ship" = $4, "UpdateDate" = now(), "UpdateUserId" = $5
+            """);
+        command.Parameters.AddWithValue(accountId);
+        command.Parameters.AddWithValue(profile.Callsign);
+        command.Parameters.AddWithValue(profile.Avatar);
+        command.Parameters.AddWithValue(profile.Ship);
+        command.Parameters.AddWithValue(actor);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    /// <summary>Sets the missions an administrator opens for a pilot (in addition to the ways the pilot flew open).</summary>
+    public async Task GrantAsync(long accountId, int[] missions, long actor, CancellationToken ct)
+    {
+        var valid = missions.Where(m => m >= 0 && m < Levels.Missions.Count).Distinct().Order().ToArray();
+        await using var command = database.CreateCommand("""
+            INSERT INTO vectorwings."Pilot" ("Id", "Granted", "CreateUserId", "UpdateUserId") VALUES ($1, $2, $3, $3)
+            ON CONFLICT ("Id") DO UPDATE SET "Granted" = $2, "UpdateDate" = now(), "UpdateUserId" = $3
+            """);
+        command.Parameters.AddWithValue(accountId);
+        command.Parameters.AddWithValue(valid);
+        command.Parameters.AddWithValue(actor);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    /// <summary>Removes the pilot's results (cleared missions, medals, scores) and the granted missions; the pilot file stays.</summary>
+    public async Task ResetAsync(long accountId, long actor, CancellationToken ct)
+    {
+        await writes.WaitAsync(ct);
+        try
+        {
+            await using var command = database.CreateCommand("""
+                DELETE FROM vectorwings."PilotResult" WHERE "AccountId" = $1;
+                UPDATE vectorwings."Pilot" SET "Granted" = '{}', "UpdateDate" = now(), "UpdateUserId" = $2 WHERE "Id" = $1;
+                """);
+            command.Parameters.AddWithValue(accountId);
+            command.Parameters.AddWithValue(actor);
+            await command.ExecuteNonQueryAsync(ct);
+        }
+        finally { writes.Release(); }
+    }
+
     public async Task RemoveAccountAsync(long accountId, CancellationToken ct)
     {
         await writes.WaitAsync(ct);
         try
         {
             deleted.Add(accountId);
-            await using var command = database.CreateCommand("""DELETE FROM vectorwings."PilotResult" WHERE "AccountId" = $1""");
+            await using var command = database.CreateCommand("""
+                DELETE FROM vectorwings."PilotResult" WHERE "AccountId" = $1;
+                DELETE FROM vectorwings."Pilot" WHERE "Id" = $1;
+                """);
             command.Parameters.AddWithValue(accountId);
             await command.ExecuteNonQueryAsync(ct);
         }
@@ -98,26 +163,48 @@ public sealed class ProgressStore(NpgsqlDataSource database)
 
     public async Task<Progress> ProfileAsync(long accountId, CancellationToken ct)
     {
-        await using var command = database.CreateCommand("""
+        var rows = new List<(string Mode, int Mission, bool? Success, bool Medal, int Score)>();
+        await using (var command = database.CreateCommand("""
             SELECT m."Mode", m."Mission", m."Success", m."Medal", p."Score"
             FROM vectorwings."PilotResult" p JOIN vectorwings."Match" m ON m."Id" = p."MatchId"
             WHERE p."AccountId" = $1
-            """);
-        command.Parameters.AddWithValue(accountId);
-        await using var reader = await command.ExecuteReaderAsync(ct);
-        var rows = new List<(string Mode, int Mission, bool? Success, bool Medal, int Score)>();
-        while (await reader.ReadAsync(ct))
-            rows.Add((reader.GetString(0), reader.GetInt32(1), reader.IsDBNull(2) ? null : reader.GetBoolean(2), reader.GetBoolean(3), reader.GetInt32(4)));
-        return Summarize(rows);
+            """))
+        {
+            command.Parameters.AddWithValue(accountId);
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                rows.Add((reader.GetString(0), reader.GetInt32(1), reader.IsDBNull(2) ? null : reader.GetBoolean(2), reader.GetBoolean(3), reader.GetInt32(4)));
+        }
+        var pilots = await PilotsAsync(accountId, ct);
+        return Summarize(rows, pilots.GetValueOrDefault(accountId));
     }
 
-    internal static Progress Summarize(IReadOnlyCollection<(string Mode, int Mission, bool? Success, bool Medal, int Score)> rows)
+    private async Task<Dictionary<long, (PilotProfile? Profile, int[] Granted)>> PilotsAsync(long? accountId, CancellationToken ct)
+    {
+        await using var command = database.CreateCommand(accountId is null
+            ? """SELECT "Id", "Callsign", "Avatar", "Ship", "Granted" FROM vectorwings."Pilot" """
+            : """SELECT "Id", "Callsign", "Avatar", "Ship", "Granted" FROM vectorwings."Pilot" WHERE "Id" = $1""");
+        if (accountId is not null) command.Parameters.AddWithValue(accountId.Value);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var pilots = new Dictionary<long, (PilotProfile?, int[])>();
+        while (await reader.ReadAsync(ct))
+        {
+            var profile = reader.IsDBNull(1) ? null : new PilotProfile(reader.GetString(1), reader.IsDBNull(2) ? PilotProfile.Avatars[0] : reader.GetString(2), reader.GetInt32(3));
+            pilots[reader.GetInt64(0)] = (profile, reader.GetFieldValue<int[]>(4));
+        }
+        return pilots;
+    }
+
+    internal static Progress Summarize(IReadOnlyCollection<(string Mode, int Mission, bool? Success, bool Medal, int Score)> rows,
+        (PilotProfile? Profile, int[] Granted) pilot = default)
     {
         var campaign = rows.Where(row => row.Mode == nameof(GameMode.Campaign)).ToArray();
         var cleared = campaign.Where(row => row.Success == true).Select(row => row.Mission).Distinct().Order().ToArray();
         var best = campaign.GroupBy(row => row.Mission).ToDictionary(group => group.Key, group => group.Max(row => row.Score));
         var medals = campaign.Where(row => row.Medal).Select(row => row.Mission).Distinct().Order().ToArray();
-        return new Progress(rows.Count, cleared.Length, rows.Count == 0 ? 0 : rows.Max(row => row.Score), cleared, best, medals);
+        var granted = pilot.Granted ?? [];
+        return new Progress(rows.Count, cleared.Length, rows.Count == 0 ? 0 : rows.Max(row => row.Score), cleared, best, medals,
+            pilot.Profile, granted, Levels.Unlocked(cleared, medals, granted));
     }
 
     internal async Task<ResultRow[]> ResultsAsync(CancellationToken ct)
@@ -135,21 +222,26 @@ public sealed class ProgressStore(NpgsqlDataSource database)
         return results.ToArray();
     }
 
+    /// <summary>Every pilot with results or a pilot file.</summary>
     internal async Task<ProgressRow[]> PlayersAsync(IGameAccounts accounts, CancellationToken ct)
     {
-        await using var command = database.CreateCommand("""
+        var rows = new Dictionary<long, List<(string, int, bool?, bool, int)>>();
+        await using (var command = database.CreateCommand("""
             SELECT p."AccountId", m."Mode", m."Mission", m."Success", m."Medal", p."Score"
             FROM vectorwings."PilotResult" p JOIN vectorwings."Match" m ON m."Id" = p."MatchId"
-            """);
-        await using var reader = await command.ExecuteReaderAsync(ct);
-        var rows = new Dictionary<long, List<(string, int, bool?, bool, int)>>();
-        while (await reader.ReadAsync(ct))
+            """))
         {
-            var account = reader.GetInt64(0);
-            if (!rows.TryGetValue(account, out var list)) rows[account] = list = [];
-            list.Add((reader.GetString(1), reader.GetInt32(2), reader.IsDBNull(3) ? null : reader.GetBoolean(3), reader.GetBoolean(4), reader.GetInt32(5)));
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var account = reader.GetInt64(0);
+                if (!rows.TryGetValue(account, out var list)) rows[account] = list = [];
+                list.Add((reader.GetString(1), reader.GetInt32(2), reader.IsDBNull(3) ? null : reader.GetBoolean(3), reader.GetBoolean(4), reader.GetInt32(5)));
+            }
         }
+        var pilots = await PilotsAsync(null, ct);
+        foreach (var id in pilots.Keys) rows.TryAdd(id, []);
         var names = await accounts.FindManyAsync(rows.Keys, ct);
-        return names.Select(pair => new ProgressRow(pair.Key, pair.Value.Name, Summarize(rows[pair.Key]))).ToArray();
+        return names.Select(pair => new ProgressRow(pair.Key, pair.Value.Name, Summarize(rows[pair.Key], pilots.GetValueOrDefault(pair.Key)))).ToArray();
     }
 }

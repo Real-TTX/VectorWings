@@ -23,7 +23,8 @@ docker compose -f compose.local.yml up -d --build     # lokal gebaut (MatGame li
 ## Spielen
 
 - **Menüs** wie bei einer Konsole: Pfeiltasten/WASD, Gamepad oder Maus; Enter/A wählt, Esc/B geht zurück, T/Y ist die Zusatzaktion (unten stehen immer die passenden Tasten).
-- **Kampagne:** Auf der **Sternenroute** (3D-Weltkarte mit vier Inseln) fliegt das eigene Schiff von Feld zu Feld. Jede Mission wird erst frei, wenn die vorige geschafft ist; geschaffte Felder tragen eine Fahne, Medaillen sind golden. Start eröffnet die Lobby, Raumcode teilen, starten. Laufenden Koop-Partien kann man über *Multiplayer* jederzeit beitreten und übernimmt dann einen Crew-Platz.
+- **Pilotenakte:** Rufname (Vorgabe aus dem MatGame-Konto), einer von acht Avataren und das Startflugzeug – beim ersten Start und jederzeit im Hauptmenü.
+- **Kampagne:** Die **Sternenroute** ist eine Weltraumkarte mit Planeten, Raumstation, Asteroiden und Nebeln. Das eigene Schiff fliegt über Hyperraum-Wege von Planet zu Planet; nach Mission 1 verzweigt sich der Weg (Wüste oder Orbit), und die Medaille in Mission 1 öffnet eine geheime Abkürzung. Geschaffte Planeten tragen eine Fahne, Medaillen sind golden. Administratoren können Missionen pro Spieler freischalten. Start eröffnet die Lobby, Raumcode teilen, starten. Laufenden Koop-Partien kann man über *Multiplayer* jederzeit beitreten und übernimmt dann einen Crew-Platz.
 - **Kernjagd / Treffer auf Zeit:** direkt vom Titelbild, die Lobby füllt freie Plätze mit Bots.
 - **Hangar:** drei Schiffe – *Lanze* (ausgewogen), *Sperber* (schnell, lädt schneller), *Bastion* (schwer gepanzert, Doppellaser ab Start).
 - Ringe: Silber +30 Schild, Gold +30 und jeder dritte ein Extraleben, der grüne Leuchtring +50. Kapseln: rot = Smart-Bombe, blau = nächste Laserstufe.
@@ -38,7 +39,7 @@ docker compose -f compose.local.yml up -d --build     # lokal gebaut (MatGame li
 | Boost / Bremse | Umschalt / Strg | RB / LB | Boost / Bremse |
 | Fassrolle antippen, Neigen halten | Q / E | LT / RT | Rolle |
 | Looping (Arena: Wende) | R | Y | Looping |
-| Kamera / Pause | C / Esc | Back / Start | II |
+| Cockpit-/Verfolgerkamera · Pause | C · Esc | Back · Start | II (Pausemenü) |
 
 ## Entwicklung
 

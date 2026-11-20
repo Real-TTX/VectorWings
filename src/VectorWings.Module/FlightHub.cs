@@ -7,13 +7,23 @@ using VectorWings.Core;
 namespace VectorWings.Module;
 
 /// <summary>The hub of VectorWings (docs/PROTOCOL.md): lobby methods with an answer, Report without one, Frame from the server.</summary>
-public sealed class FlightHub(RoomRegistry rooms) : Hub
+public sealed class FlightHub(RoomRegistry rooms, ProgressStore store) : Hub
 {
     private GameAccount Account => Context.User?.ToAccount() ?? throw new HubException("Bitte in MatGame anmelden.");
 
     public RoomListing[] List() => rooms.List(Account.Id);
-    public Task<SeatInfo> Create(string mode, int mission, bool bots, int ship) => Lobby(() => rooms.Create(Account, Context.ConnectionId, mode, mission, bots, ship));
-    public Task<SeatInfo> Join(string code, int ship) => Lobby(() => rooms.Join(Account, Context.ConnectionId, code, ship));
+
+    public async Task<SeatInfo> Create(string mode, int mission, bool bots, int ship, string? avatar, string? callsign)
+    {
+        var account = Account;
+        if (mode == nameof(GameMode.Campaign) && !(await store.ProfileAsync(account.Id, Context.ConnectionAborted)).Unlocked.Contains(mission))
+            throw new HubException("Diese Mission ist noch gesperrt.");
+        var profile = PilotProfile.Clean(callsign, avatar, ship, account.Name);
+        return await Lobby(() => rooms.Create(account, Context.ConnectionId, mode, mission, bots, profile));
+    }
+
+    public Task<SeatInfo> Join(string code, int ship, string? avatar, string? callsign) =>
+        Lobby(() => rooms.Join(Account, Context.ConnectionId, code, PilotProfile.Clean(callsign, avatar, ship, Account.Name)));
     public Task<SeatInfo> Ship(int ship) => Lobby(() => rooms.Ship(Context.ConnectionId, ship));
     public Task<SeatInfo> Start() => Lobby(() => rooms.Start(Context.ConnectionId), started: true);
     public void Report(Report? report) => rooms.Report(Context.ConnectionId, report);

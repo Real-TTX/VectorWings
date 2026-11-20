@@ -1,11 +1,17 @@
 // The flight instruments (DOM over the canvas): pilot card, wing, score, boss bar, radio, reticles, title cards, radar.
+export const SLOT_CREW = ['mira', 'brakk', 'sola', 'pip'];
 export const CREW = {
     mira: { name: 'Mira', role: 'Staffelführerin', image: 'img/crew/mira.svg' },
     brakk: { name: 'Brakk', role: 'Schütze', image: 'img/crew/brakk.svg' },
     sola: { name: 'Sola', role: 'Aufklärerin', image: 'img/crew/sola.svg' },
-    pip: { name: 'Pip', role: 'Navigator', image: 'img/crew/pip.svg' }
+    pip: { name: 'Pip', role: 'Navigator', image: 'img/crew/pip.svg' },
+    rico: { name: 'Rico', role: 'Waschbär', image: 'img/crew/rico.svg' },
+    penny: { name: 'Penny', role: 'Pinguin', image: 'img/crew/penny.svg' },
+    bo: { name: 'Bo', role: 'Bär', image: 'img/crew/bo.svg' },
+    nima: { name: 'Nima', role: 'Roter Panda', image: 'img/crew/nima.svg' }
 };
-export const SLOT_CREW = ['mira', 'brakk', 'sola', 'pip'];
+export const AVATARS = Object.keys(CREW);
+export const avatarOf = (pilot, slot) => CREW[pilot?.avatar] ? pilot.avatar : SLOT_CREW[(slot ?? pilot?.slot ?? 0) % 4];
 const $ = id => document.getElementById(id);
 
 export class Hud {

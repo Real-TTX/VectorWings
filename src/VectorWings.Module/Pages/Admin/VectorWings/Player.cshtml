@@ -1,0 +1,38 @@
+@page "/Admin/VectorWings/Player"
+@model VectorWings.Module.Pages.Admin.PlayerModel
+@{
+    ViewData["Title"] = Model.Callsign ?? Model.AccountName;
+    ViewData["Crumbs"] = new List<(string, string?)> { ("Administration", "/Admin"), ("VectorWings", "/Admin/VectorWings"), ("Spieler", "/Admin/VectorWings?View=players"), (Model.AccountName, null) };
+    ViewData["Width"] = "narrow";
+}
+
+<form class="mat-form" method="post" novalidate>
+    <partial name="_FormSummary" model="ViewData.ModelState" />
+    <div class="mat-card">
+        <div class="mat-card__head"><h2 class="mat-card__title">Pilotenakte</h2></div>
+        <div class="mat-card__body mat-form">
+            <md-field name="Callsign" label="Rufname" required value="@Model.Callsign" maxlength="20" hint="@($"MatGame-Konto: {Model.AccountName}")" />
+            <md-field name="Avatar" kind="select" label="Avatar" value="@Model.Avatar" options="Model.Avatars" />
+            <md-field name="Ship" kind="select" label="Startflugzeug" value="@Model.Ship.ToString()" options="Model.Ships" />
+        </div>
+    </div>
+    <div class="mat-card">
+        <div class="mat-card__head"><h2 class="mat-card__title">Kampagne freischalten</h2></div>
+        <div class="mat-card__body mat-form">
+            @for (var m = 0; m < VectorWings.Core.Levels.Missions.Count; m++)
+            {
+                var mission = VectorWings.Core.Levels.Missions[m];
+                var flown = Model.Progress!.Unlocked.Contains(m) && !Model.Progress.Granted.Contains(m);
+                <md-field name="@($"Grant[{m}]")" kind="check" label="@($"Mission {m + 1} · {mission.Name}{(flown ? " (schon erflogen)" : "")}")" value="@Model.Grant[m].ToString()" />
+            }
+            <dl class="mat-kv">
+                <dt>Partien</dt><dd>@Model.Progress!.Matches</dd>
+                <dt>Geschafft</dt><dd>@(Model.Progress.Cleared.Length == 0 ? "–" : string.Join(", ", Model.Progress.Cleared.Select(c => c + 1)))</dd>
+                <dt>Medaillen</dt><dd>@(Model.Progress.Medals.Length == 0 ? "–" : string.Join(", ", Model.Progress.Medals.Select(c => c + 1)))</dd>
+                <dt>Bestwert</dt><dd>@Model.Progress.BestScore</dd>
+            </dl>
+        </div>
+    </div>
+    <md-buttons save="Speichern" back="/Admin/VectorWings?View=players" delete-handler="Reset" delete-label="Fortschritt zurücksetzen"
+                delete-confirm="@($"Alle Ergebnisse, Medaillen und Freischaltungen von „{Model.AccountName}“ löschen? Die Pilotenakte bleibt.")" />
+</form>

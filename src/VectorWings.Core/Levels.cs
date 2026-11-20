@@ -16,21 +16,38 @@ public sealed record MissionSpec(int Id, string Key, string Name, string Subtitl
 
 public sealed record ArenaSpec(string Name, string[] Pickups, double Respawn);
 
+/// <summary>A way on the campaign map: from mission (-1 = the home station) to mission, open when the start is cleared ("clear"),
+/// its medal is won ("medal", a secret way) or always ("start").</summary>
+public sealed record RouteSpec(int From, int To, string Condition);
+
 /// <summary>Levels.json, shared with the browser part: waves, pickups and bosses of the missions and the arena.</summary>
 public static class Levels
 {
     public const int PickupBase = 5000, DropBase = 6000, DroneBase = 100000;
     public const double Intro = 6, BossIntro = 7, Outro = 9, Countdown = 4, BattleTime = 180;
 
-    private static readonly Lazy<(MissionSpec[] Missions, ArenaSpec Arena)> Data = new(Load);
+    private static readonly Lazy<(MissionSpec[] Missions, ArenaSpec Arena, RouteSpec[] Routes)> Data = new(Load);
 
     public static IReadOnlyList<MissionSpec> Missions => Data.Value.Missions;
     public static ArenaSpec Arena => Data.Value.Arena;
+    public static IReadOnlyList<RouteSpec> Routes => Data.Value.Routes;
+
+    /// <summary>The missions a pilot may fly: reached over an open way, or granted by an administrator.</summary>
+    public static int[] Unlocked(IEnumerable<int> cleared, IEnumerable<int> medals, IEnumerable<int> granted)
+    {
+        var done = cleared.ToHashSet();
+        var gold = medals.ToHashSet();
+        var open = granted.Where(m => m >= 0 && m < Missions.Count).ToHashSet();
+        foreach (var route in Routes)
+            if (route.Condition == "start" || (route.Condition == "clear" && done.Contains(route.From)) || (route.Condition == "medal" && gold.Contains(route.From)))
+                open.Add(route.To);
+        return open.Order().ToArray();
+    }
 
     public static string NameOf(int mission) =>
         mission >= 0 && mission < Missions.Count ? Missions[mission].Name : Arena.Name;
 
-    private static (MissionSpec[], ArenaSpec) Load()
+    private static (MissionSpec[], ArenaSpec, RouteSpec[]) Load()
     {
         using var stream = typeof(Levels).Assembly.GetManifestResourceStream("VectorWings.Levels")
                            ?? throw new InvalidOperationException("Levels.json is not embedded.");
@@ -66,9 +83,10 @@ public static class Levels
                 mission.GetProperty("bossAt").GetDouble(), mission.GetProperty("medal").GetInt32(), enemies.ToArray(), pickups, spec, briefing));
         }
         var arena = root.GetProperty("arena");
+        var routes = root.GetProperty("routes").EnumerateArray().Select(r => new RouteSpec(r[0].GetInt32(), r[1].GetInt32(), r[2].GetString()!)).ToArray();
         return (missions.ToArray(), new ArenaSpec(arena.GetProperty("name").GetString()!,
             arena.GetProperty("pickups").EnumerateArray().Select(pickup => pickup[0].GetString()!).ToArray(),
-            arena.GetProperty("respawn").GetDouble()));
+            arena.GetProperty("respawn").GetDouble()), routes);
     }
 }
 
@@ -82,7 +100,23 @@ public static class Levels
 public sealed record Report(double[][]? S = null, double[][]? H = null, double[][]? D = null, double[][]? P = null, double[][]? B = null, double[][]? V = null);
 
 public sealed record PilotView(int Slot, string Name, bool Bot, bool Ai, bool Connected, int Ship, double[] St, int Shield, int MaxShield,
-    int Lives, int Bombs, int Laser, int Cores, int Score, int Hits, bool Alive, bool Out, bool Invuln);
+    int Lives, int Bombs, int Laser, int Cores, int Score, int Hits, bool Alive, bool Out, bool Invuln, string Avatar = "");
+
+/// <summary>The pilot's file: call sign, portrait and starting ship.</summary>
+public sealed record PilotProfile(string Callsign, string Avatar, int Ship)
+{
+    /// <summary>Portraits a pilot can choose (the first four are also the crew that flies the free seats).</summary>
+    public static readonly string[] Avatars = ["mira", "brakk", "sola", "pip", "rico", "penny", "bo", "nima"];
+
+    /// <summary>A clean profile: call sign trimmed to 20 printable characters (fallback when empty), a known portrait, ship 0–2.</summary>
+    public static PilotProfile Clean(string? callsign, string? avatar, int ship, string fallback)
+    {
+        var name = new string((callsign ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
+        if (name.Length > 20) name = name[..20].Trim();
+        if (name.Length == 0) name = string.IsNullOrWhiteSpace(fallback) ? "Pilot" : fallback.Trim();
+        return new PilotProfile(name, Avatars.Contains(avatar) ? avatar! : Avatars[0], Math.Clamp(ship, 0, 2));
+    }
+}
 
 public sealed record BossView(int Phase, double Start, int[] Hp, int[] Max, double Down);
 

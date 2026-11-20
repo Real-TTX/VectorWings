@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using VectorWings.Core;
 
 namespace VectorWings.Module;
 
@@ -15,12 +16,12 @@ public sealed class VectorWingsModule : IGameModule
     public static string Version { get; } = typeof(VectorWingsModule).Assembly
         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
 
-    /// <summary>The hub protocol of the game (docs/PROTOCOL.md); 2 = client-simulated ships with reports (VectorWings 0.2).</summary>
-    public const int Protocol = 2;
+    /// <summary>The hub protocol of the game (docs/PROTOCOL.md); 3 = pilot files (avatar, call sign) in Create/Join (VectorWings 0.3).</summary>
+    public const int Protocol = 3;
 
     public GameInfo Info { get; } = new("vectorwings", "VectorWings",
         "Low-Poly-Weltraumshooter: Koop-Kampagne mit Bossen und Smart-Bomben, Kernjagd-Duelle in der Arena.",
-        Version, Protocol, "0.2.0", "#ff8a3d", "img/cover.jpg", "img/mark.svg");
+        Version, Protocol, "0.3.0", "#ff8a3d", "img/cover.jpg", "img/mark.svg");
 
     public IReadOnlyList<AdminLink> Admin { get; } =
         [new("VectorWings", "/Admin/VectorWings", "dashboard")];
@@ -39,13 +40,23 @@ public sealed class VectorWingsModule : IGameModule
             .AllowAnonymous();
         game.MapHub<FlightHub>("/hub").RequireAuthorization(GameAccounts.AnyScheme)
             .RequireCors(MatGameProtocol.AppCorsPolicy);
-        game.MapGroup("/api").ForGame(Info).MapGet("/progress", async (HttpContext http, ProgressStore store, CancellationToken ct) =>
+        var api = game.MapGroup("/api").ForGame(Info);
+        api.MapGet("/progress", async (HttpContext http, ProgressStore store, CancellationToken ct) =>
         {
             var player = http.User.ToAccount();
             if (player is null) return Results.Unauthorized();
             return Results.Ok(await store.ProfileAsync(player.Id, ct));
         }).RequireAuthorization(GameAccounts.AnyScheme);
+        api.MapPut("/profile", async (HttpContext http, ProfileInput input, ProgressStore store, CancellationToken ct) =>
+        {
+            var player = http.User.ToAccount();
+            if (player is null) return Results.Unauthorized();
+            await store.SavePilotAsync(player.Id, PilotProfile.Clean(input.Callsign, input.Avatar, input.Ship, player.Name), player.Id, ct);
+            return Results.Ok(await store.ProfileAsync(player.Id, ct));
+        }).RequireAuthorization(GameAccounts.AnyScheme);
     }
+
+    public sealed record ProfileInput(string? Callsign, string? Avatar, int Ship);
 
     private static IResult PlayerPage(HttpContext http, IWebHostEnvironment host, string basePath)
     {

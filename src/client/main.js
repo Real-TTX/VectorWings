@@ -5,7 +5,7 @@ import { connect, host, LocalTransport, OnlineTransport, servers } from '../Vect
 import { Stage } from './render/stage.js';
 import { Effects } from './render/fx.js';
 import { SHIPS } from './render/models.js';
-import { Hud, CREW, SLOT_CREW } from './hud.js';
+import { Hud, CREW, AVATARS, avatarOf } from './hud.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { Game } from './game/game.js';
@@ -29,6 +29,7 @@ const PROMPTS = {
     map: [['lr', 'MISSION'], ['a', 'STARTEN'], ['y', 'CREW AN/AUS'], ['b', 'ZURÜCK']],
     hangar: [['lr', 'SCHIFF'], ['a', 'FLIEGEN'], ['b', 'ZURÜCK']],
     lobby: [['a', 'WÄHLEN'], ['b', 'VERLASSEN']],
+    profile: [['a', 'WÄHLEN'], ['b', 'ZURÜCK']],
     options: [['lr', 'ÄNDERN'], ['b', 'ZURÜCK']],
     help: [['b', 'ZURÜCK']]
 };
@@ -54,6 +55,9 @@ class App {
         this.backdrop = null;
         this.progress = null;
         this.cleared = new Set(JSON.parse(localStorage.getItem('vectorwings.cleared') ?? '[]'));
+        this.profile = JSON.parse(localStorage.getItem('vectorwings.profile') ?? 'null');
+        this.accountName = '';
+        this.needsProfile = false;
         this.transport = null;
         this.needsPilot = false;
         this.generation = 0;
@@ -114,15 +118,15 @@ class App {
             this.backdrop?.dispose();
             this.fx.clear();
             if (kind === 'map') {
-                this.backdrop = new Overworld(this.stage, { design: this.ship, unlocked: this.unlocked(), cleared: [...this.clearedMissions()],
-                    medals: this.progress?.medals ?? [], selected: Math.min(this.mission, this.unlocked() - 1) });
+                this.backdrop = new Overworld(this.stage, { design: this.ship, slot: 0, unlocked: this.unlocked(), cleared: [...this.clearedMissions()],
+                    medals: this.progress?.medals ?? [], selected: this.mission });
                 this.backdrop.onArrive = index => { this.selectMission(index); this.audio.play('ring', .5); };
-                this.backdrop.onMove = () => this.audio.play('roll', .5);
+                this.backdrop.onMove = target => { this.audio.play('roll', .5); this.selectMission(target); };
                 this.buildBadges();
             } else this.backdrop = new MenuScene(this.stage);
         }
         if (this.backdrop instanceof MenuScene) {
-            if (kind === 'hangar') this.backdrop.showHangar(this.ship, this.slot >= 0 ? this.slot : 0);
+            if (kind === 'hangar' || kind === 'profile') this.backdrop.showHangar(this.ship, this.slot >= 0 ? this.slot : 0);
             else this.backdrop.showFlight();
         }
     }
@@ -131,12 +135,94 @@ class App {
         return new Set([...(this.progress?.cleared ?? []), ...this.cleared]);
     }
 
+    /** Missions the pilot may fly: from the server (ways plus granted), else computed from the ways of Levels.json. */
     unlocked() {
-        if ((params.has('preview') && !params.has('locked')) || params.has('unlock')) return 4;
-        const cleared = this.clearedMissions();
-        let open = 1;
-        while (open < 4 && cleared.has(open - 1)) open++;
-        return open;
+        if ((params.has('preview') && !params.has('locked')) || params.has('unlock')) return [0, 1, 2, 3];
+        const cleared = this.clearedMissions(), medals = new Set(this.progress?.medals ?? []);
+        const open = new Set(this.progress?.unlocked ?? []);
+        for (const [from, to, condition] of LEVELS.routes)
+            if (condition === 'start' || (condition === 'clear' && cleared.has(from)) || (condition === 'medal' && medals.has(from))) open.add(to);
+        return [...open].sort();
+    }
+
+    // ─── Pilot file ─────────────────────────────────────────────────────────────────
+
+    pilot() {
+        return this.profile ?? { callsign: this.accountName || 'Pilot', avatar: 'mira', ship: this.ship };
+    }
+
+    showPilotChip() {
+        const p = this.pilot();
+        $('pilot-chip').hidden = false;
+        $('pilot-chip-name').textContent = p.callsign.toUpperCase();
+        $('pilot-chip-portrait').style.backgroundImage = `url(${CREW[avatarOf(p)].image})`;
+    }
+
+    openProfile() {
+        const p = this.pilot();
+        this.draft = { callsign: p.callsign, avatar: avatarOf(p), ship: p.ship ?? this.ship };
+        $('profile-name').value = this.draft.callsign;
+        $('profile-hint').textContent = this.accountName ? `Vorgabe aus deinem MatGame-Konto: ${this.accountName}` : 'Dein Name in Lobby, Funk und Bestenliste.';
+        $('profile-avatars').replaceChildren(...AVATARS.map(key => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.nav = '';
+            b.dataset.avatar = key;
+            b.style.backgroundImage = `url(${CREW[key].image})`;
+            b.innerHTML = `<span>${CREW[key].name.toUpperCase()}</span>`;
+            b.onclick = () => { this.draft.avatar = key; this.renderDraft(); this.audio.play('select'); };
+            return b;
+        }));
+        $('profile-ships').replaceChildren(...SHIPS.map((ship, i) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.nav = '';
+            b.textContent = ship.name.toUpperCase();
+            b.onclick = () => { this.draft.ship = i; this.ship = i; this.renderDraft(); this.audio.play('select'); };
+            return b;
+        }));
+        this.renderDraft();
+    }
+
+    renderDraft() {
+        const d = this.draft;
+        for (const b of $('profile-avatars').children) b.setAttribute('aria-pressed', String(b.dataset.avatar === d.avatar));
+        [...$('profile-ships').children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === d.ship)));
+        $('profile-portrait').style.backgroundImage = `url(${CREW[d.avatar].image})`;
+        $('profile-callsign').textContent = ($('profile-name').value.trim() || this.accountName || 'Pilot').toUpperCase();
+        $('profile-role').textContent = SHIPS[d.ship].model.toUpperCase();
+        if (this.screen === 'profile') this.backdrop?.showHangar?.(d.ship, 0);
+    }
+
+    async saveProfile() {
+        const d = this.draft;
+        d.callsign = $('profile-name').value.trim().slice(0, 20) || this.accountName || 'Pilot';
+        this.profile = { callsign: d.callsign, avatar: d.avatar, ship: d.ship };
+        this.ship = d.ship;
+        localStorage.setItem('vectorwings.profile', JSON.stringify(this.profile));
+        localStorage.setItem('vectorwings.ship', String(this.ship));
+        if (this.transport?.connected) {
+            const progress = await this.transport.request('PUT', '/profile', this.profile).catch(() => null);
+            if (progress) this.applyProgress(progress);
+        }
+        this.needsProfile = false;
+        this.showPilotChip();
+        this.audio.play('ring');
+        this.go('main');
+    }
+
+    applyProgress(progress) {
+        this.progress = progress;
+        for (const m of progress.cleared ?? []) this.cleared.add(m);
+        if (progress.pilot) {
+            this.profile = { callsign: progress.pilot.callsign, avatar: progress.pilot.avatar, ship: progress.pilot.ship };
+            localStorage.setItem('vectorwings.profile', JSON.stringify(this.profile));
+            this.ship = this.profile.ship;
+        }
+        this.needsProfile = !progress.pilot && !params.has('preview');
+        $('progress').textContent = `${this.clearedMissions().size}/4 MISSIONEN · ${(progress.medals?.length ?? 0)} MEDAILLEN · BESTWERT ${progress.bestScore.toLocaleString('de-DE')}`;
+        if (this.backdrop instanceof Overworld) this.backdrop.stale = true;
+        this.showPilotChip();
     }
 
     // ─── Screens ────────────────────────────────────────────────────────────────────
@@ -145,19 +231,17 @@ class App {
         this.screen = screen;
         document.body.dataset.screen = screen;
         for (const section of document.querySelectorAll('.screen')) section.hidden = section.id !== 'screen-' + screen;
-        this.useBackdrop(screen === 'map' ? 'map' : screen === 'hangar' ? 'hangar' : 'menu');
+        if (screen === 'profile') this.openProfile();
+        this.useBackdrop(screen === 'map' ? 'map' : screen === 'hangar' ? 'hangar' : screen === 'profile' ? 'profile' : 'menu');
+        if (screen === 'profile') this.backdrop?.showHangar?.(this.draft.ship, 0);
         const section = $('screen-' + screen);
         const handlers = { back: () => this.back(screen) };
         if (screen === 'press') handlers.back = null;
         if (screen === 'main') handlers.focus = item => { $('menu-info').textContent = item.dataset.info ?? ''; };
         if (screen === 'map') {
             handlers.move = (dx, dy) => {
-                const direction = dx || dy;
                 if (!(this.backdrop instanceof Overworld)) return true;
-                if (!this.backdrop.step(direction > 0 ? 1 : -1)) {
-                    const next = this.backdrop.index + (direction > 0 ? 1 : -1);
-                    if (next >= this.backdrop.unlocked && next < 4) { this.audio.play('empty'); this.notice(`Gesperrt – schließe zuerst Mission ${next} ab.`); }
-                } else this.selectMission(this.backdrop.route?.target ?? this.backdrop.index);
+                if (!this.backdrop.step(dx, dy)) { this.audio.play('empty'); this.notice('In diese Richtung ist noch kein Weg frei.'); }
                 return true;
             };
             handlers.action = item => {
@@ -193,6 +277,7 @@ class App {
     back(screen) {
         switch (screen) {
             case 'pilot': this.go('press'); break;
+            case 'profile': this.go(this.needsProfile ? 'press' : 'main'); break;
             case 'main': this.go('press'); break;
             case 'hangar': this.go(this.state?.state === 'Lobby' ? 'lobby' : this.hangarReturn); break;
             case 'lobby': void this.task(() => this.leave()); break;
@@ -223,12 +308,19 @@ class App {
             else if (go === 'hangar') { if (this.screen !== 'hangar') this.hangarReturn = this.screen; this.go('hangar'); }
             else this.go(go);
         });
-        $('press').onclick = () => { this.audio.unlock(); this.audio.play('go'); this.go(this.needsPilot ? 'pilot' : 'main'); };
+        $('press').onclick = () => { this.audio.unlock(); this.audio.play('go'); this.go(this.needsPilot ? 'pilot' : this.needsProfile ? 'profile' : 'main'); };
+        $('profile-save').onclick = () => this.task(() => this.saveProfile());
+        $('profile-name').oninput = () => this.renderDraft();
         $('ship-prev').onclick = () => { this.ship = (this.ship + SHIPS.length - 1) % SHIPS.length; this.showShip(); };
         $('ship-next').onclick = () => { this.ship = (this.ship + 1) % SHIPS.length; this.showShip(); };
         $('ship-choose').onclick = () => this.task(async () => {
             localStorage.setItem('vectorwings.ship', String(this.ship));
             this.audio.play('select');
+            if (this.profile) {
+                this.profile.ship = this.ship;
+                localStorage.setItem('vectorwings.profile', JSON.stringify(this.profile));
+                if (this.transport?.connected) void this.transport.request('PUT', '/profile', this.profile).catch(() => null);
+            }
             if (this.backdrop instanceof Overworld) this.backdrop.stale = true;
             if (this.state?.state === 'Lobby') this.showSeat(await this.transport.invoke('Ship', this.ship));
             else this.go(this.hangarReturn);
@@ -285,15 +377,15 @@ class App {
     // ─── Campaign map ───────────────────────────────────────────────────────────────
 
     buildBadges() {
-        const done = this.clearedMissions(), medals = new Set(this.progress?.medals ?? []), open = this.unlocked();
+        const done = this.clearedMissions(), medals = new Set(this.progress?.medals ?? []), open = new Set(this.unlocked());
         $('map-badges').replaceChildren(...LEVELS.missions.map((m, i) => {
             const badge = document.createElement('button');
             badge.textContent = String(i + 1);
             badge.title = m.name;
-            badge.className = i >= open ? 'locked' : medals.has(i) ? 'medal' : done.has(i) ? 'done' : '';
+            badge.className = !open.has(i) ? 'locked' : medals.has(i) ? 'medal' : done.has(i) ? 'done' : '';
             badge.onclick = () => {
                 if (!(this.backdrop instanceof Overworld)) return;
-                if (i >= open) { this.audio.play('empty'); this.notice(`Gesperrt – schließe zuerst Mission ${i} ab.`); return; }
+                if (!open.has(i)) { this.audio.play('empty'); this.notice('Gesperrt – dorthin führt noch kein freier Weg.'); return; }
                 if (i === this.backdrop.index && !this.backdrop.route) { void this.task(() => this.create('Campaign')); return; }
                 this.backdrop.go(i);
                 this.selectMission(i);
@@ -351,9 +443,9 @@ class App {
         if (host.isApp) $('server-form').elements.server.value = context.server ?? '';
         $('server-form').onsubmit = event => {
             event.preventDefault();
-            void this.task(async () => { await servers.select(event.target.elements.server.value); await this.boot(); this.go(this.needsPilot ? 'pilot' : 'main'); });
+            void this.task(async () => { await servers.select(event.target.elements.server.value); await this.boot(); this.go(this.needsPilot ? 'pilot' : this.needsProfile ? 'profile' : 'main'); });
         };
-        $('offline').onclick = () => this.task(async () => { await servers.select(null); await this.boot(); this.go('main'); });
+        $('offline').onclick = () => this.task(async () => { await servers.select(null); await this.boot(); this.go(this.needsProfile ? 'profile' : 'main'); });
         if (host.isApp && (!context.entry || context.problem)) {
             $('network').textContent = 'OFFLINE';
             $('guest').hidden = true;
@@ -367,8 +459,7 @@ class App {
         if (session.signedIn) {
             this.needsPilot = false;
             $('guest').hidden = true;
-            $('pilot-chip').hidden = false;
-            $('pilot-chip').textContent = (session.account.name ?? session.account.displayName ?? '').toUpperCase();
+            this.accountName = session.account.name ?? session.account.displayName ?? '';
             await this.startTransport(new OnlineTransport({ signalR, session, base: context.entry.path }));
             return;
         }
@@ -379,12 +470,12 @@ class App {
         $('pilot-hint').textContent = 'Als Gast fliegst du sofort los. Mit einem MatGame-Konto bleiben Fortschritt und Medaillen auf allen Geräten.';
         $('guest').onsubmit = event => {
             event.preventDefault();
-            void this.task(async () => { await session.guest(event.target.elements.name.value); await this.boot(); this.go('main'); });
+            void this.task(async () => { await session.guest(event.target.elements.name.value); await this.boot(); this.go(this.needsProfile ? 'profile' : 'main'); });
         };
         $('link').onclick = () => this.task(async () => {
             await session.deviceLogin({ onCode: details => this.notice('Gerätecode · ' + (details.code ?? details.userCode ?? details)) });
             await this.boot();
-            this.go('main');
+            this.go(this.needsProfile ? 'profile' : 'main');
         });
     }
 
@@ -421,12 +512,7 @@ class App {
         if (!transport?.connected || this.state) return;
         const [rooms, progress] = await Promise.all([transport.invoke('List'), transport.request('GET', '/progress').catch(() => null)]);
         if (transport !== this.transport || this.state) return;
-        if (progress) {
-            this.progress = progress;
-            for (const m of progress.cleared ?? []) this.cleared.add(m);
-            $('progress').textContent = `${this.clearedMissions().size}/4 MISSIONEN · ${(progress.medals?.length ?? 0)} MEDAILLEN · BESTWERT ${progress.bestScore.toLocaleString('de-DE')}`;
-            if (this.backdrop instanceof Overworld) this.backdrop.stale = true;
-        }
+        if (progress) this.applyProgress(progress);
         $('rooms').replaceChildren(...rooms.map(room => {
             const button = document.createElement('button');
             button.className = 'slab room';
@@ -447,15 +533,17 @@ class App {
         this.mode = mode;
         if (params.has('preview') && !this.transport) { this.preview(mode, this.mission); return; }
         if (!this.transport) throw new Error('Noch keine Verbindung zu MatGame.');
-        if (mode === 'Campaign' && this.mission >= this.unlocked()) throw new Error('Diese Mission ist noch gesperrt.');
-        const seat = await this.transport.invoke('Create', mode, this.mission, $('bots').checked || this.transport.mode === 'offline' || mode !== 'Campaign', this.ship);
+        if (mode === 'Campaign' && !this.unlocked().includes(this.mission)) throw new Error('Diese Mission ist noch gesperrt.');
+        const p = this.pilot();
+        const seat = await this.transport.invoke('Create', mode, this.mission, $('bots').checked || this.transport.mode === 'offline' || mode !== 'Campaign', this.ship, avatarOf(p), p.callsign);
         this.showSeat(seat);
         if (this.transport.mode === 'offline') this.showSeat(await this.transport.invoke('Start'));
     }
 
     async join(code) {
         this.audio.unlock();
-        this.showSeat(await this.transport.invoke('Join', code.trim().toUpperCase(), this.ship));
+        const p = this.pilot();
+        this.showSeat(await this.transport.invoke('Join', code.trim().toUpperCase(), this.ship, avatarOf(p), p.callsign));
     }
 
     async leave() {
@@ -505,8 +593,8 @@ class App {
             const p = frame.pilots.find(q => q.slot === slot);
             const li = document.createElement('li');
             li.style.animationDelay = slot * 60 + 'ms';
-            if (!p) { li.className = 'empty'; li.textContent = 'FREI · ' + CREW[SLOT_CREW[slot]].name.toUpperCase(); cards.push(li); continue; }
-            li.innerHTML = `<i class="portrait" style="background-image:url(${CREW[SLOT_CREW[slot]].image})"></i><b></b><small></small><span class="tag"></span>`;
+            if (!p) { li.className = 'empty'; li.textContent = 'FREI · ' + CREW[avatarOf(null, slot)].name.toUpperCase(); cards.push(li); continue; }
+            li.innerHTML = `<i class="portrait" style="background-image:url(${CREW[avatarOf(p, slot)].image})"></i><b></b><small></small><span class="tag"></span>`;
             li.querySelector('b').textContent = p.name;
             li.querySelector('small').textContent = (SHIPS[p.ship]?.model ?? '').toUpperCase();
             const tag = li.querySelector('.tag');
@@ -600,7 +688,8 @@ class App {
     // ─── Preview without a host (?preview) ──────────────────────────────────────────
 
     preview(mode = params.get('mode') ?? 'Campaign', mission = Number(params.get('mission') ?? 0)) {
-        const room = this.room = new LoopbackRoom({ mode, mission, name: 'Pilot', ship: Number(params.get('ship') ?? this.ship), bots: params.get('bots') !== '0' });
+        const pilot = this.pilot();
+        const room = this.room = new LoopbackRoom({ mode, mission, name: pilot.callsign, avatar: avatarOf(pilot), ship: Number(params.get('ship') ?? this.ship), bots: params.get('bots') !== '0' });
         if (params.has('t')) room.time = Number(params.get('t'));
         if (params.has('god')) room.pilots[0].maxShield = room.pilots[0].shield = 9999;
         if (params.has('clean')) document.body.classList.add('clean');

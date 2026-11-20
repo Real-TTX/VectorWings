@@ -40,6 +40,31 @@ public sealed class RoomTests
     }
 
     [Fact]
+    public void CampaignWaysBranchAndTheMedalOpensTheShortcut()
+    {
+        Assert.Equal([0], Levels.Unlocked([], [], []));
+        Assert.Equal([0, 1, 2], Levels.Unlocked([0], [], []));
+        Assert.Equal([0, 1, 2, 3], Levels.Unlocked([0], [0], []));
+        Assert.Equal([0, 1, 2, 3], Levels.Unlocked([0, 2], [], []));
+        Assert.Equal([0, 3], Levels.Unlocked([], [], [3, 9, -1]));
+    }
+
+    [Fact]
+    public void PilotFilesAreCleanedAndCarriedIntoTheRoom()
+    {
+        var profile = PilotProfile.Clean("  Feuerfalke der Westlichen Wolkenküste\n ", "hacker", 7, "Konto");
+        Assert.Equal("Feuerfalke der Westl", profile.Callsign);
+        Assert.Equal("mira", profile.Avatar);
+        Assert.Equal(2, profile.Ship);
+        Assert.Equal("Konto", PilotProfile.Clean(" ", "bo", 0, "Konto").Callsign);
+        var room = new Room("P", GameMode.Campaign, 0, true, 1);
+        room.Join(1, "Rico", "a", 1, "rico");
+        room.Start("a");
+        Assert.Equal("rico", Pilot(room, 0).Avatar);
+        Assert.Equal("brakk", Pilot(room, 1).Avatar);
+    }
+
+    [Fact]
     public void OnlyTheLeaderStartsAndBotsFillTheSquadron()
     {
         var room = Campaign(0, true, "a", "b");
@@ -316,12 +341,13 @@ public sealed class RoomTests
     [Fact]
     public void OfflineProgressKeepsBestScoresAndMedals()
     {
-        var progress = new LocalProgress(0, [], 0, [], []);
+        var progress = new LocalProgress(0, [], 0, [], [], new PilotProfile("Ace", "bo", 1));
         progress = VectorWingsLocal.Record(progress, new MatchResult(Guid.NewGuid(), GameMode.Campaign, 1, true, true, [], [new Standing(1, 4200, 120)]));
         progress = VectorWingsLocal.Record(progress, new MatchResult(Guid.NewGuid(), GameMode.Campaign, 1, false, false, [], [new Standing(1, 1000, 20)]));
         Assert.Equal(2, progress.Matches);
         Assert.Equal([1], progress.Cleared);
         Assert.Equal([1], progress.Medals);
         Assert.Equal(4200, progress.Best.Single(pair => pair[0] == 1)[1]);
+        Assert.Equal("Ace", progress.Pilot!.Callsign);
     }
 }

@@ -213,16 +213,16 @@ export class Geo {
     }
 
     /** Icosahedron (detail 0) or one subdivision (detail 1), jitter moves the corners for rocks. */
-    ico(cx, cy, cz, radius, color, { detail = 0, jitter = 0, sx = 1, sy = 1, sz = 1, colorOf } = {}) {
+    ico(cx, cy, cz, radius, color, { detail = 0, jitter = 0, sx = 1, sy = 1, sz = 1, colorOf, colorAt } = {}) {
         const t = (1 + Math.sqrt(5)) / 2;
         let vertices = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]]
             .map(v => { const l = Math.hypot(...v); return v.map(c => c / l); });
         let faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
             [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
-        if (detail > 0) {
+        for (let level = 0; level < detail; level++) {
             const cache = new Map();
             const middle = (a, b) => {
-                const key = a < b ? a * 97 + b : b * 97 + a;
+                const key = a < b ? a * 100000 + b : b * 100000 + a;
                 if (!cache.has(key)) {
                     const m = vertices[a].map((c, i) => (c + vertices[b][i]) / 2);
                     const l = Math.hypot(...m);
@@ -239,7 +239,9 @@ export class Geo {
         const r = jitter ? vertices.map(() => 1 + (this.random() - .5) * 2 * jitter) : null;
         const p = vertices.map((v, i) => [cx + v[0] * radius * sx * (r ? r[i] : 1), cy + v[1] * radius * sy * (r ? r[i] : 1), cz + v[2] * radius * sz * (r ? r[i] : 1)]);
         for (const [a, b, c] of faces) {
-            const face = colorOf ? colorOf((p[a][1] + p[b][1] + p[c][1]) / 3 - cy) : color;
+            const va = vertices[a], vb = vertices[b], vc = vertices[c];
+            const face = colorAt ? colorAt((va[0] + vb[0] + vc[0]) / 3, (va[1] + vb[1] + vc[1]) / 3, (va[2] + vb[2] + vc[2]) / 3)
+                : colorOf ? colorOf((p[a][1] + p[b][1] + p[c][1]) / 3 - cy) : color;
             this.tri(p[a], p[b], p[c], face, [cx, cy, cz]);
         }
         return this;

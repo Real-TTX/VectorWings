@@ -1,21 +1,22 @@
 # VectorWings – Protokoll
 
 Hub `/vectorwings/hub` (SignalR, JSON, camelCase), API `/vectorwings/api`. Offline in der App beantwortet `VectorWings.Local` dieselben Aufrufe
-mit denselben Formen (`LocalTransport` des MatGame-SDK). Spielprotokoll **2** (`VectorWingsModule.Protocol`), Mindestversion der Apps `0.2.0`.
+mit denselben Formen (`LocalTransport` des MatGame-SDK). Spielprotokoll **3** (`VectorWingsModule.Protocol`), Mindestversion der Apps `0.3.0`.
 
 ## API
 
 | Methode | Pfad | Antwort |
 |---|---|---|
-| GET | `/progress` | `{ matches, missions, bestScore, cleared: int[], best: { "<mission>": score }, medals: int[] }` |
+| GET | `/progress` | `{ matches, missions, bestScore, cleared: int[], best: { "<mission>": score }, medals: int[], pilot: { callsign, avatar, ship } | null, granted: int[], unlocked: int[] }` |
+| PUT | `/profile` | Body `{ callsign, avatar, ship }` (Rufname bis 20 Zeichen, Avatar aus `PilotProfile.Avatars`, Schiff 0–2) → wie `/progress` |
 
 ## Hub
 
 | Methode | Argumente | Antwort |
 |---|---|---|
 | `List` | – | `RoomListing[]` `{ code, mode, mission, humans, returning, running }` – Lobbys, eigene laufende Partien, laufende Koop-/Zeitpartien mit Bot-Platz (Drop-in) |
-| `Create` | `mode` (`Campaign`·`Battle`·`Timed`), `mission` (0–3), `bots`, `ship` (0–2) | `SeatInfo { slot, frame }` |
-| `Join` | `code`, `ship` | `SeatInfo` – in der Lobby ein neuer Platz, in einer laufenden Kampagne/Zeitpartie übernimmt man einen Bot |
+| `Create` | `mode` (`Campaign`·`Battle`·`Timed`), `mission` (0–3), `bots`, `ship` (0–2), `avatar`, `callsign` | `SeatInfo { slot, frame }` – eine Kampagnenmission nur, wenn sie in `unlocked` steht |
+| `Join` | `code`, `ship`, `avatar`, `callsign` | `SeatInfo` – in der Lobby ein neuer Platz, in einer laufenden Kampagne/Zeitpartie übernimmt man einen Bot |
 | `Ship` | `ship` | `SeatInfo` (nur in der Lobby) |
 | `Start` | – | `SeatInfo` (nur der Staffelführer = kleinster verbundener Slot) |
 | `Report` | `Report` | – (ohne Antwort, ~20×/s) |
@@ -44,7 +45,7 @@ Flags: `1` Feuer · `2` Boost · `4` Bremse · `8` Fassrolle · `16` Looping/Wen
 `{ code, state (Lobby·Playing·Finished), mode, mission, phase, time, leader, driver, humans, pilots[], kills[], dead?, hurt[], taken[], boss?, events[], success?, winners[] }`
 
 - `phase`: Kampagne `intro` (0–6 s) · `stage` · `bossIntro` (7 s ab `bossAt`) · `boss` · `outro` (9 s nach dem Fall); Arena `countdown` (4 s) · `battle` · `done`.
-- `pilots[]`: `{ slot, name, bot, ai, connected, ship, st, shield, maxShield, lives, bombs, laser, cores, score, hits, alive, out, invuln }`.
+- `pilots[]`: `{ slot, name, bot, ai, connected, ship, st, shield, maxShield, lives, bombs, laser, cores, score, hits, alive, out, invuln, avatar }` (name = Rufname).
 - `kills`: `[id, zeit, slot]` der letzten 3 s; `dead`: alle toten ids (jeder 20. Frame und beim Beitritt); `hurt`: `[id, hp]` angeschlagener Gegner.
 - `taken`: genommene Pickups (Arena: nur die noch nicht wieder erschienenen).
 - `boss`: `{ phase, start, hp[], max[], down }` (`down` = Zeitpunkt des Falls, sonst −1).
@@ -67,3 +68,7 @@ Flags: `1` Feuer · `2` Boost · `4` Bremse · `8` Fassrolle · `16` Looping/Wen
 ## Offline
 
 `VectorWings.Local` hostet denselben `Room` (Gast + Crew als Bots) und speichert `flight-progress.json` (`matches, cleared, bestScore, best: [[mission, score]], medals`).
+
+## Kampagnenwege
+
+`routes` in Levels.json: `[von, nach, bedingung]` (−1 = Heimatstation). `start` immer offen, `clear` wenn `von` geschafft ist, `medal` (geheimer Weg) mit der Medaille von `von`. Frei sind die Ziele offener Wege plus die vom Administrator freigeschalteten Missionen (`Pilot.Granted`, Admin → VectorWings → Spieler → Bearbeiten). `Levels.Unlocked` rechnet das auf dem Server, der Browser genauso.

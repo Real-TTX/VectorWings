@@ -17,7 +17,7 @@
 <div id="vignette"></div>
 
 <div id="ui">
-    <div id="chips"><span class="chip" id="network">Verbinde …</span><span class="chip pilot" id="pilot-chip" hidden></span></div>
+    <div id="chips"><span class="chip" id="network">Verbinde …</span><span class="chip pilot" id="pilot-chip" hidden><i class="portrait" id="pilot-chip-portrait"></i><span id="pilot-chip-name"></span></span></div>
 
     <section class="screen" id="screen-press">
         <div class="logo big" aria-label="VectorWings">
@@ -48,6 +48,22 @@
         </div>
     </section>
 
+    <section class="screen" id="screen-profile" hidden>
+        <h2 class="title">PILOTENAKTE</h2>
+        <div class="profile-grid">
+            <div class="frame profile-card">
+                <label class="field">RUFNAME<input id="profile-name" maxlength="20" autocomplete="nickname" data-nav data-default></label>
+                <p class="hint" id="profile-hint"></p>
+                <h3>AVATAR</h3>
+                <div id="profile-avatars"></div>
+                <h3>STARTFLUGZEUG</h3>
+                <div id="profile-ships"></div>
+                <button class="slab primary" id="profile-save" data-nav>AKTE SPEICHERN</button>
+            </div>
+            <div class="profile-preview"><i class="portrait" id="profile-portrait"></i><strong id="profile-callsign"></strong><small id="profile-role"></small></div>
+        </div>
+    </section>
+
     <section class="screen" id="screen-main" hidden>
         <div class="logo small"><h1><span>VECTOR</span><span>WINGS</span></h1></div>
         <nav class="menu-list" aria-label="Hauptmenü">
@@ -55,6 +71,7 @@
             <button class="slab" data-nav data-go="Battle" data-info="Arena-Duell: Jedes Schiff trägt drei Schildkerne. Treffer und Bomben zerstören einen, ein Boost-Rammstoß von hinten klaut ihn."><b>KERNJAGD</b></button>
             <button class="slab" data-nav data-go="Timed" data-info="Drei Minuten Allrange-Gefecht. Jeder Abschuss zählt, nach dem Absturz geht es sofort weiter."><b>TREFFER AUF ZEIT</b></button>
             <button class="slab" data-nav data-go="multi" id="menu-multi" data-info="Offene Staffeln beitreten oder einen Raumcode eingeben."><b>MULTIPLAYER</b></button>
+            <button class="slab" data-nav data-go="profile" data-info="Rufname, Avatar und Startflugzeug deines Piloten."><b>PILOTENAKTE</b></button>
             <button class="slab" data-nav data-go="hangar" data-info="Wähle dein Schiff: Lanze, Sperber oder Bastion."><b>HANGAR</b></button>
             <button class="slab" data-nav data-go="options" data-info="Lautstärke, Steuerung, Kamera und Grafik."><b>OPTIONEN</b></button>
             <button class="slab" data-nav data-go="help" data-info="Alle Tasten für Tastatur, Gamepad und Touch."><b>STEUERUNG</b></button>

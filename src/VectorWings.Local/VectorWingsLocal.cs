@@ -16,7 +16,7 @@ public sealed class VectorWingsLocal : ILocalGame
     private ILocalHost host = null!;
     private Task? loop;
     private Room? room;
-    private LocalProgress progress = new(0, [], 0, [], []);
+    private LocalProgress progress = new(0, [], 0, [], [], null);
 
     public string GameId => "vectorwings";
 
@@ -44,14 +44,27 @@ public sealed class VectorWingsLocal : ILocalGame
     public Task<LocalResponse> RequestAsync(string method, string path, JsonElement? body, CancellationToken ct)
     {
         lock (gate)
-            return Task.FromResult(method == "GET" && path == "/progress"
-                ? LocalResponse.Ok(new
-                {
-                    progress.Matches, Missions = progress.Cleared.Length, progress.BestScore, progress.Cleared,
-                    Best = progress.Best.ToDictionary(pair => pair[0].ToString(), pair => pair[1]), progress.Medals
-                })
-                : LocalResponse.Error(404, "Unbekannte Route."));
+        {
+            if (method == "PUT" && path == "/profile" && body is { } input)
+            {
+                var callsign = input.TryGetProperty("callsign", out var c) ? c.GetString() : null;
+                var avatar = input.TryGetProperty("avatar", out var a) ? a.GetString() : null;
+                var ship = input.TryGetProperty("ship", out var s) && s.TryGetInt32(out var n) ? n : 0;
+                progress = progress with { Pilot = PilotProfile.Clean(callsign, avatar, ship, host.PlayerName) };
+                _ = SaveAsync(progress, CancellationToken.None);
+                return Task.FromResult(LocalResponse.Ok(View()));
+            }
+            return Task.FromResult(method == "GET" && path == "/progress" ? LocalResponse.Ok(View()) : LocalResponse.Error(404, "Unbekannte Route."));
+        }
     }
+
+    private object View() => new
+    {
+        progress.Matches, Missions = progress.Cleared.Length, progress.BestScore, progress.Cleared,
+        Best = progress.Best.ToDictionary(pair => pair[0].ToString(), pair => pair[1]), progress.Medals, progress.Pilot,
+        Granted = Array.Empty<int>(), Unlocked = Levels.Unlocked(progress.Cleared, progress.Medals, [])
+    };
+
 
     public Task<JsonElement?> InvokeAsync(string method, IReadOnlyList<JsonElement> args, CancellationToken ct)
     {
@@ -60,7 +73,8 @@ public sealed class VectorWingsLocal : ILocalGame
             object? response = method switch
             {
                 "List" => Array.Empty<object>(),
-                "Create" when args.Count >= 3 => Create(args[0].GetString(), args[1].GetInt32(), args.Count > 3 ? args[3].GetInt32() : 0),
+                "Create" when args.Count >= 3 => Create(args[0].GetString(), args[1].GetInt32(), args.Count > 3 ? args[3].GetInt32() : 0,
+                    args.Count > 4 ? args[4].GetString() : null, args.Count > 5 ? args[5].GetString() : null),
                 "Ship" when room is not null && args.Count == 1 => Ship(args[0].GetInt32()),
                 "Start" when room is not null => Start(),
                 "Report" when args.Count == 1 => Report(args[0].Deserialize<Report>(LocalJson.Options)),
@@ -72,13 +86,14 @@ public sealed class VectorWingsLocal : ILocalGame
         }
     }
 
-    private object Create(string? mode, int mission, int ship)
+    private object Create(string? mode, int mission, int ship, string? avatar, string? callsign)
     {
         if (!Enum.TryParse<GameMode>(mode, out var selection) || selection.ToString() != mode ||
             (selection == GameMode.Campaign && (mission < 0 || mission >= Levels.Missions.Count)))
             throw new InvalidOperationException("Dieser Spielmodus oder diese Mission ist unbekannt.");
         room = new Room("LOKAL", selection, mission, true, Random.Shared.Next());
-        room.Join(1, host.PlayerName, Connection, ship);
+        var profile = PilotProfile.Clean(callsign, avatar, ship, progress.Pilot?.Callsign ?? host.PlayerName);
+        room.Join(1, profile.Callsign, Connection, profile.Ship, profile.Avatar);
         return Seat(room);
     }
 
@@ -141,7 +156,7 @@ public sealed class VectorWingsLocal : ILocalGame
         var best = progress.Best.Where(pair => pair[0] != result.Mission || !campaign).ToList();
         if (campaign) best.Add([result.Mission, Math.Max(score, progress.Best.FirstOrDefault(pair => pair[0] == result.Mission)?[1] ?? 0)]);
         var medals = result.Medal ? progress.Medals.Append(result.Mission).Distinct().Order().ToArray() : progress.Medals;
-        return new LocalProgress(progress.Matches + 1, cleared, Math.Max(progress.BestScore, score), best.ToArray(), medals);
+        return new LocalProgress(progress.Matches + 1, cleared, Math.Max(progress.BestScore, score), best.ToArray(), medals, progress.Pilot);
     }
 
     private async Task SaveAsync(LocalProgress updated, CancellationToken ct)
@@ -169,4 +184,4 @@ public sealed class VectorWingsLocal : ILocalGame
 }
 
 /// <summary>The offline profile (flight-progress.json): Best holds [mission, score] pairs.</summary>
-internal sealed record LocalProgress(int Matches, int[] Cleared, int BestScore, int[][] Best, int[] Medals);
+internal sealed record LocalProgress(int Matches, int[] Cleared, int BestScore, int[][] Best, int[] Medals, PilotProfile? Pilot = null);

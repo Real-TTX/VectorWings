@@ -68,8 +68,9 @@ public sealed class Room
 
     // ─── Seats ──────────────────────────────────────────────────────────────────────
 
-    public int Join(long accountId, string name, string connection, int ship)
+    public int Join(long accountId, string name, string connection, int ship, string? avatar = null)
     {
+        avatar = PilotProfile.Avatars.Contains(avatar) ? avatar : null;
         ship = Math.Clamp(ship, 0, ShipShield.Length - 1);
         var pilot = pilots.FirstOrDefault(p => p.AccountId == accountId);
         if (State == "Finished") throw new InvalidOperationException("Diese Partie ist bereits beendet.");
@@ -79,7 +80,7 @@ public sealed class Room
             {
                 if (pilots.Count >= 4) throw new InvalidOperationException("Die Staffel ist voll.");
                 var slot = Enumerable.Range(0, 4).First(index => pilots.All(p => p.Slot != index));
-                pilot = new Pilot(slot, accountId, name, ship);
+                pilot = new Pilot(slot, accountId, name, ship) { Avatar = avatar ?? PilotProfile.Avatars[slot] };
                 pilots.Add(pilot);
             }
             else
@@ -89,11 +90,13 @@ public sealed class Room
                 if (pilot is null) throw new InvalidOperationException("In dieser Partie ist kein Platz frei.");
                 pilot.AccountId = accountId;
                 pilot.Name = name;
+                pilot.Avatar = avatar ?? pilot.Avatar;
                 pilot.Lives = Math.Max(pilot.Lives, 2);
                 Event("join", pilot.Slot);
             }
         }
         pilot.Connection = connection;
+        if (avatar is not null) pilot.Avatar = avatar;
         if (State == "Lobby") SetShip(pilot, ship);
         return pilot.Slot;
     }
@@ -141,7 +144,7 @@ public sealed class Room
         if (FillBots)
             for (var slot = 0; slot < 4; slot++)
                 if (pilots.All(p => p.Slot != slot))
-                    pilots.Add(new Pilot(slot, null, Crew[slot], slot % 3));
+                    pilots.Add(new Pilot(slot, null, Crew[slot], slot % 3) { Avatar = PilotProfile.Avatars[slot] });
         pilots.Sort((a, b) => a.Slot.CompareTo(b.Slot));
         foreach (var pilot in pilots) Equip(pilot);
         State = "Playing";
@@ -466,7 +469,7 @@ public sealed class Room
         var driver = Driver;
         return new Frame(Code, State, Mode.ToString(), MissionId, Phase, Math.Round(Time, 3), Leader, driver, Humans,
             pilots.Select(p => new PilotView(p.Slot, p.Name, p.AccountId is null, p.Ai, p.Connection is not null, p.Ship, p.St,
-                p.Shield, p.MaxShield, p.Lives, p.Bombs, p.Laser, p.Cores, p.Score, p.Hits, p.Alive, p.Out, Time < p.InvulnerableUntil)).ToArray(),
+                p.Shield, p.MaxShield, p.Lives, p.Bombs, p.Laser, p.Cores, p.Score, p.Hits, p.Alive, p.Out, Time < p.InvulnerableUntil, p.Avatar)).ToArray(),
             kills.ToArray(),
             full || ticks % 20 == 0 ? dead.ToArray() : null,
             enemyHealth.Select(pair => new[] { pair.Key, pair.Value }).ToArray(),
@@ -491,6 +494,7 @@ public sealed class Room
         public string Name { get; set; } = name;
         public string? Connection;
         public int Ship = ship;
+        public string Avatar = PilotProfile.Avatars[0];
         public bool Ai => AccountId is null || Connection is null;
         public double[] St = new double[8];
         public int Shield, MaxShield, Lives = 3, Bombs, Laser = 1, Cores, Score, Hits, Gold;

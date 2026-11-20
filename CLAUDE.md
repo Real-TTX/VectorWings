@@ -31,7 +31,7 @@ admin `/Admin/VectorWings`), as its own image (port 2776), and in the Windows ap
 ## Rules (from the owner's guidelines — keep them)
 
 - **Git:** branches `main` (release) and `dev` (nightly). Commits only under the owner's name; **no Co-Authored-By or other contributor lines**, no generated-by lines in PRs.
-- **Versions:** `0.2.<build>-<date>` / `nightly-<build>-<date>` / `local-<date>` (`Directory.Build.props`, CI). `VectorWingsModule.Protocol` and the min client
+- **Versions:** `0.3.<build>-<date>` / `nightly-<build>-<date>` / `local-<date>` (`Directory.Build.props`, CI). `VectorWingsModule.Protocol` and the min client
   rise only with a hub change old apps cannot follow (docs/PROTOCOL.md).
 - **Docker:** one Dockerfile, compose files for release/dev/local, no `${VARIABLES}`, no `.env`, always a stack (`name:`).
 - **C#:** Microsoft conventions, readable names, flat code. Results go to schema `vectorwings` (tables `Match`, `PilotResult`; columns are added with `ADD COLUMN IF NOT EXISTS`).
@@ -43,12 +43,14 @@ admin `/Admin/VectorWings`), as its own image (port 2776), and in the Windows ap
 ```
 src/VectorWings.Core     Levels.json (shared with the browser: kinds, missions with waves/pickups/props/boss parts+phases, arena), Levels.cs (loads it, protocol records),
                          Room.cs (the match: lobby, seats, driver, reports, rules, boss phases, arena rules, result)
-src/VectorWings.Module   VectorWingsModule (IGameModule), FlightHub + GameTicker (20 Hz), RoomRegistry, ProgressStore (Npgsql), Pages/Admin/VectorWings
+src/VectorWings.Module   VectorWingsModule (IGameModule, /api/progress, /api/profile), FlightHub + GameTicker (20 Hz), RoomRegistry, ProgressStore (Npgsql: Match, PilotResult, Pilot),
+                         Pages/Admin/VectorWings (overview, Player = pilot file + granted missions + reset)
 src/VectorWings.Local    VectorWingsLocal (ILocalGame: the room offline, flight-progress.json)
 src/VectorWings.App      the Windows app (MatGame.Shell + embedded wwwroot + VectorWingsLocal)
 src/client               the browser part (bundled):
   main.js                app: game menus (press start, pilot, main, multiplayer, map, hangar, lobby, options, help), MatGame connection, lobby, result tally, previews
-  overworld.js           the campaign map: islands, path, pads, unlocking, the ship flying between missions
+  overworld.js           the campaign map in space: planets, station, asteroids, branching lanes (Levels.json routes, secret medal lane), the ship flying between them
+  render/cockpit.js      the 3D cockpit of the cockpit camera
   ui/nav.js              console-style menu navigation (keys, gamepad, pointer) over [data-nav] items
   game/game.js           one match: clock sync, own/bot/remote ships, deterministic enemies + fire, shots, bolts, charged shots, bombs, pickups, boss, camera direction, reports
   game/pilot.js          flight model (rail + arena), barrel roll, tilt, loop/U-turn, boost/brake meter, weapons; game/bots.js wingmen and arena bots

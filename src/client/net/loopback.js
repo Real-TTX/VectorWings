@@ -7,7 +7,8 @@ const SHIELD = [100, 85, 130], BOMBS = [3, 2, 3];
 const CREW = ['Mira', 'Brakk', 'Sola', 'Pip'];
 
 export class LoopbackRoom {
-    constructor({ mode = 'Campaign', mission = 0, name = 'Pilot', ship = 0, bots = true, slot = 0 }) {
+    constructor({ mode = 'Campaign', mission = 0, name = 'Pilot', ship = 0, bots = true, slot = 0, avatar = 'mira' }) {
+        this.avatar = avatar;
         this.mode = mode;
         this.def = mode === 'Campaign' ? LEVELS.missions[mission] : null;
         this.time = 0;
@@ -36,7 +37,7 @@ export class LoopbackRoom {
 
     pilot(slot, name, bot, ship) {
         const battle = this.mode !== 'Campaign';
-        return { slot, name, bot, connected: !bot, ship, st: [0, 0, 0, 0, 0, 0, 0, 0], shield: battle && this.mode === 'Battle' ? 100 : SHIELD[ship],
+        return { slot, name, bot, avatar: bot ? ['mira', 'brakk', 'sola', 'pip'][slot] : this.avatar, connected: !bot, ship, st: [0, 0, 0, 0, 0, 0, 0, 0], shield: battle && this.mode === 'Battle' ? 100 : SHIELD[ship],
             maxShield: battle ? 100 : SHIELD[ship], lives: 3, bombs: battle ? 1 : BOMBS[ship], laser: ship === 2 ? 2 : 1, cores: this.mode === 'Battle' ? 3 : 0,
             score: 0, hits: 0, alive: true, out: false, invulnUntil: 2, respawnAt: 0, gold: 0 };
     }
@@ -260,7 +261,7 @@ export class LoopbackRoom {
             leader: 0, driver: 0, humans: 1,
             pilots: this.pilots.map(p => ({ slot: p.slot, name: p.name, bot: p.bot, ai: p.bot, connected: p.connected, ship: p.ship, st: p.st,
                 shield: p.shield, maxShield: p.maxShield, lives: p.lives, bombs: p.bombs, laser: p.laser, cores: p.cores, score: p.score,
-                hits: p.hits, alive: p.alive, out: p.out, invuln: this.time < p.invulnUntil })),
+                hits: p.hits, alive: p.alive, out: p.out, invuln: this.time < p.invulnUntil, avatar: p.avatar })),
             kills: this.kills,
             dead: this.frameCount % 20 === 0 ? [...this.dead] : null,
             hurt: [...this.hp.entries()],

@@ -47,9 +47,22 @@ internal static class AdminLogic
         var history = view == "live" || view == "players" ? [] : (await store.ResultsAsync(ct))
             .Where(result => Matches(result.Mode, query) || Matches(result.Id.ToString(), query)).ToArray();
         var players = view == "live" || view == "history" ? [] : (await store.PlayersAsync(accounts, ct))
-            .Where(player => Matches(player.Name, query) || Matches(player.AccountId.ToString(), query)).ToArray();
+            .Where(player => Matches(player.Name, query) || Matches(player.AccountId.ToString(), query) || Matches(player.Progress.Pilot?.Callsign ?? "", query)).ToArray();
         return (live, history, sort == "score" ? players.OrderByDescending(player => player.Progress.BestScore).ToArray()
             : players.OrderBy(player => player.Name, StringComparer.CurrentCultureIgnoreCase).ToArray());
+    }
+
+    public static async Task SavePilotAsync(GameAccount actor, ProgressStore store, long accountId, VectorWings.Core.PilotProfile profile, int[] granted, CancellationToken ct)
+    {
+        DemandAdmin(actor);
+        await store.SavePilotAsync(accountId, profile, actor.Id, ct);
+        await store.GrantAsync(accountId, granted, actor.Id, ct);
+    }
+
+    public static async Task ResetPilotAsync(GameAccount actor, ProgressStore store, long accountId, CancellationToken ct)
+    {
+        DemandAdmin(actor);
+        await store.ResetAsync(accountId, actor.Id, ct);
     }
 
     public static void End(GameAccount actor, RoomRegistry rooms, string code)

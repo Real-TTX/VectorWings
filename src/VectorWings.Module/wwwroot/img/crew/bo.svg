@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><title>Bo</title>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4a2a"/><stop offset="1" stop-color="#2a1a14"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#bg)"/><polygon points="0,0 52,0 0,46" fill="#fff" opacity=".05"/>
+<polygon points="6,120 18,96 42,88 60,94 78,88 102,96 114,120" fill="#3d5a8c"/><polygon points="18,96 42,88 46,120 6,120" fill="#304a76"/>
+<polygon points="42,90 60,98 78,90 60,106" fill="#d8d2c4"/>
+<circle cx="32" cy="28" r="11" fill="#7a4a2e"/><circle cx="88" cy="28" r="11" fill="#6a3e26"/><circle cx="32" cy="28" r="5" fill="#c8906a"/><circle cx="88" cy="28" r="5" fill="#c8906a"/>
+<polygon points="60,22 86,28 98,52 94,76 78,90 60,94 42,90 26,76 22,52 34,28" fill="#8a5634"/>
+<polygon points="60,22 34,28 22,52 44,44" fill="#9a6440"/><polygon points="60,22 86,28 98,52 76,44" fill="#7a4a2c"/>
+<polygon points="42,62 60,56 78,62 76,80 60,90 44,80" fill="#d8b088"/><polygon points="60,56 78,62 76,80 60,90" fill="#c8a078"/>
+<polygon points="52,62 68,62 60,70" fill="#2a1a14"/><path d="M60 70 L60 76 M53 78 L60 76 L67 78" fill="none" stroke="#5a3a2a" stroke-width="1.6"/>
+<circle cx="45" cy="50" r="3.2" fill="#1a1210"/><circle cx="75" cy="50" r="3.2" fill="#1a1210"/><circle cx="44" cy="49" r="1.1" fill="#fff"/><circle cx="74" cy="49" r="1.1" fill="#fff"/>
+<path d="M38 43 L50 45 M82 43 L70 45" stroke="#4a2c1c" stroke-width="2.5"/>
+<path d="M24 54 Q60 2 96 54" fill="none" stroke="#2b2f3a" stroke-width="5"/><rect x="17" y="50" width="10" height="16" rx="3" fill="#3a3f4c"/><rect x="93" y="50" width="10" height="16" rx="3" fill="#3a3f4c"/></svg>

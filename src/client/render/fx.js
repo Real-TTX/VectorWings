@@ -40,7 +40,6 @@ class Pool {
             }
         }
         mesh.material = material;
-        if (alpha) mesh.renderingGroupId = 1;
         if (glow) stage.addGlow(mesh);
         this.free = [];
         this.active = [];

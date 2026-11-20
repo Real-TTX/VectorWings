@@ -9,8 +9,9 @@ import { createBoss } from '../bosses/index.js';
 import { EnemyViews, PickupViews, ShipView, bombMesh } from '../render/actors.js';
 import { TEAM } from '../render/models.js';
 import { PilotSim, FLAG } from './pilot.js';
+import { Cockpit } from '../render/cockpit.js';
 import { Bot } from './bots.js';
-import { SLOT_CREW } from '../hud.js';
+import { SLOT_CREW, avatarOf } from '../hud.js';
 import { INTRO, BOSS_INTRO, OUTRO, COUNTDOWN, BATTLE_TIME } from '../net/loopback.js';
 
 const BOLT_SPEED = 180, BOLT_LIFE = 1.05, SHOT_LIFE = 6, BOMB_SPEED = 90, BOMB_RADIUS = 24, ARENA_BOMB_RADIUS = 20;
@@ -50,6 +51,7 @@ export class Game {
         this.world = createWorld(key, this.stage, { rail: this.rail, level: this.level, field: this.field });
         this.boss = this.def ? createBoss(key, this.stage, this.def) : null;
         this.enemyViews = new EnemyViews(this.stage);
+        this.cockpit = new Cockpit(this.stage, slot);
         this.pickupViews = new PickupViews(this.stage);
         this.pilots = new Map();
         this.bolts = [];
@@ -308,6 +310,7 @@ export class Game {
             this.hud.comm('mira', 'Alle Staffeln: Angriff! Zielt auf die leuchtenden Teile!', true);
         } else if (phase === 'stage' && previous === 'intro') {
             this.hud.comm('mira', 'Waffen frei!');
+            if (!localStorage.getItem('vectorwings.cockpitHint')) { localStorage.setItem('vectorwings.cockpitHint', '1'); this.hud.comm('pip', 'Tipp: Mit C oder der Back-Taste wechselst du ins Cockpit.'); }
         } else if (phase === 'countdown') {
             this.hud.card('KERNJAGD', this.mode === 'Battle' ? 'Drei Kerne. Wer zuletzt fliegt, gewinnt.' : 'Drei Minuten. Jeder Treffer zählt.', 'mission', 3);
         } else if (phase === 'battle' && previous === 'countdown') {
@@ -1268,6 +1271,9 @@ export class Game {
         cam.roll += (roll - cam.roll) * Math.min(1, dt * 6);
         this.fov = (this.fov ?? 1) + (fov - (this.fov ?? 1)) * Math.min(1, dt * 4);
         this.stage.view(cam.eye, cam.look, cam.roll, this.fov);
+        const inside = this.cameraMode === 'cockpit' && !!own?.alive && this.controllable();
+        this.cockpit.setVisible(inside);
+        if (inside && st) this.cockpit.update(st[5], st[4], t);
         this.stage.setAberration(boosting ? 18 : 0);
     }
 
@@ -1285,10 +1291,10 @@ export class Game {
     updateHud(t, own) {
         if (!own) return;
         const info = own.info, sim = own.sim;
-        const crew = SLOT_CREW[this.slot % 4];
+        const crew = avatarOf(info, this.slot);
         this.hud.pilot({ crew, lives: info.lives, shield: info.shield, max: info.maxShield, bombs: info.bombs, laser: info.laser, score: info.score, hits: info.hits,
             meter: sim?.meter ?? 1, overheat: sim?.overheat, boosting: sim?.boosting, charge: sim?.charge ?? 0, arena: this.arena, mode: this.mode, cores: info.cores });
-        this.hud.wing([...this.pilots.values()].filter(p => p.slot !== this.slot).map(p => ({ slot: p.slot, crew: SLOT_CREW[p.slot % 4], name: p.info.name,
+        this.hud.wing([...this.pilots.values()].filter(p => p.slot !== this.slot).map(p => ({ slot: p.slot, crew: avatarOf(p.info, p.slot), name: p.info.name,
             ratio: this.mode === 'Battle' ? p.info.cores / 3 : p.info.shield / p.info.maxShield, alive: p.alive, out: p.info.out })));
         // Boss bar
         if (this.boss && this.frame.boss && (this.phase === 'boss' || this.phase === 'bossIntro')) {
@@ -1366,6 +1372,7 @@ export class Game {
         this.hud.tags([]);
         this.world.dispose();
         this.boss?.dispose();
+        this.cockpit.dispose();
         for (const p of this.pilots.values()) p.view.dispose();
         this.enemyViews.hideAll();
         for (const t of this.enemyViews.templates.values()) { t.body.dispose(); t.glow?.dispose(); t.head?.dispose(); }

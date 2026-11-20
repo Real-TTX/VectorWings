@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><title>Penny</title>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6fb0"/><stop offset="1" stop-color="#0f2446"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#bg)"/><polygon points="120,120 120,70 76,120" fill="#fff" opacity=".06"/>
+<polygon points="10,120 22,96 46,90 60,96 74,90 98,96 110,120" fill="#e85a4a"/><polygon points="22,96 46,90 50,120 10,120" fill="#c8483a"/>
+<polygon points="46,92 60,100 74,92 60,108" fill="#ffd34a"/>
+<polygon points="60,18 86,26 98,50 94,76 78,90 60,94 42,90 26,76 22,50 34,26" fill="#22252e"/>
+<polygon points="60,18 34,26 22,50 42,42" fill="#2e323d"/><polygon points="60,18 86,26 98,50 78,42" fill="#1b1e26"/>
+<polygon points="36,44 52,40 60,48 68,40 84,44 90,62 80,82 60,90 40,82 30,62" fill="#f4f5f7"/><polygon points="60,48 68,40 84,44 90,62 80,82 60,90" fill="#e2e4ea"/>
+<circle cx="47" cy="56" r="6" fill="#1a1a22"/><circle cx="73" cy="56" r="6" fill="#1a1a22"/><circle cx="45" cy="54" r="2" fill="#fff"/><circle cx="71" cy="54" r="2" fill="#fff"/>
+<polygon points="52,64 68,64 60,76" fill="#ff9a2e"/><polygon points="60,64 68,64 60,76" fill="#e07a1a"/>
+<ellipse cx="38" cy="68" rx="5" ry="3" fill="#ffb0b8" opacity=".7"/><ellipse cx="82" cy="68" rx="5" ry="3" fill="#ffb0b8" opacity=".7"/>
+<rect x="30" y="28" width="60" height="9" rx="4" fill="#3b3f4a"/><circle cx="46" cy="32.5" r="6.5" fill="#ffcf5a" stroke="#3b3f4a" stroke-width="2.5"/><circle cx="74" cy="32.5" r="6.5" fill="#ffcf5a" stroke="#3b3f4a" stroke-width="2.5"/></svg>

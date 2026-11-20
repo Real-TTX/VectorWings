@@ -25,7 +25,7 @@ public sealed class RoomRegistry
     private static RoomListing Listing(Room room, long accountId) =>
         new(room.Code, room.Mode.ToString(), room.Mission?.Name ?? Levels.Arena.Name, room.Humans, room.HasPilot(accountId) && room.State == "Playing", room.State == "Playing");
 
-    public SeatInfo Create(GameAccount account, string connection, string mode, int mission, bool bots, int ship)
+    public SeatInfo Create(GameAccount account, string connection, string mode, int mission, bool bots, PilotProfile profile)
     {
         if (!Enum.TryParse<GameMode>(mode, out var selection) || selection.ToString() != mode ||
             (selection == GameMode.Campaign && (mission < 0 || mission >= Levels.Missions.Count)))
@@ -38,24 +38,24 @@ public sealed class RoomRegistry
             while (rooms.ContainsKey(code));
             var room = new Room(code, selection, mission, bots, Random.Shared.Next());
             rooms.Add(code, room);
-            return Bind(room, account, connection, ship);
+            return Bind(room, account, connection, profile);
         }
     }
 
-    public SeatInfo Join(GameAccount account, string connection, string? code, int ship)
+    public SeatInfo Join(GameAccount account, string connection, string? code, PilotProfile profile)
     {
         lock (gate)
         {
             if (string.IsNullOrWhiteSpace(code) || !rooms.TryGetValue(code.Trim(), out var room))
                 throw new InvalidOperationException("Diese Partie ist nicht verfügbar.");
-            return Bind(room, account, connection, ship);
+            return Bind(room, account, connection, profile);
         }
     }
 
-    private SeatInfo Bind(Room room, GameAccount account, string connection, int ship)
+    private SeatInfo Bind(Room room, GameAccount account, string connection, PilotProfile profile)
     {
         var old = connections.GetValueOrDefault(connection);
-        var slot = room.Join(account.Id, account.Name, connection, ship);
+        var slot = room.Join(account.Id, profile.Callsign, connection, profile.Ship, profile.Avatar);
         if (old is not null && old != room) LeaveLocked(connection);
         foreach (var stale in connections.Where(pair => pair.Value == room && room.Seat(pair.Key) < 0).ToArray())
             connections.Remove(stale.Key);

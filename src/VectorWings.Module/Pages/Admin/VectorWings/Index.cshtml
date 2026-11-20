@@ -54,10 +54,11 @@
 @if (Model.View is not ("live" or "history"))
 {
     <h2>Spieler</h2>
-    <md-table><thead><tr><th>Name</th><th>Partien</th><th>Missionen</th><th>Medaillen</th><th>Bestwert</th></tr></thead><tbody>
+    <md-table><thead><tr><th>Konto</th><th>Rufname</th><th>Partien</th><th>Missionen</th><th>Frei</th><th>Medaillen</th><th>Bestwert</th><th></th></tr></thead><tbody>
     @foreach (var player in Model.Players)
     {
-        <tr><td>@player.Name</td><td>@player.Progress.Matches</td><td>@player.Progress.Missions</td><td>@player.Progress.Medals.Length</td><td>@player.Progress.BestScore</td></tr>
+        <tr><td>@player.Name</td><td>@(player.Progress.Pilot?.Callsign ?? "–")</td><td>@player.Progress.Matches</td><td>@player.Progress.Missions</td><td>@player.Progress.Unlocked.Length/4</td><td>@player.Progress.Medals.Length</td><td>@player.Progress.BestScore</td>
+            <td><a class="md-button" href="/Admin/VectorWings/Player?Id=@player.AccountId">Bearbeiten</a></td></tr>
     }
     </tbody></md-table>
 }
