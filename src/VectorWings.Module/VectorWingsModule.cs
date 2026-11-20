@@ -15,9 +15,12 @@ public sealed class VectorWingsModule : IGameModule
     public static string Version { get; } = typeof(VectorWingsModule).Assembly
         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
 
+    /// <summary>The hub protocol of the game (docs/PROTOCOL.md); 2 = client-simulated ships with reports (VectorWings 0.2).</summary>
+    public const int Protocol = 2;
+
     public GameInfo Info { get; } = new("vectorwings", "VectorWings",
-        "Tief über bewohnte Welten fliegen, gemeinsam Bosse stellen und im Frachthafen gegeneinander antreten.",
-        Version, 1, "0.1.0", "#ff9244", "img/cover.svg", "img/mark.svg");
+        "Low-Poly-Weltraumshooter: Koop-Kampagne mit Bossen und Smart-Bomben, Kernjagd-Duelle in der Arena.",
+        Version, Protocol, "0.2.0", "#ff8a3d", "img/cover.jpg", "img/mark.svg");
 
     public IReadOnlyList<AdminLink> Admin { get; } =
         [new("VectorWings", "/Admin/VectorWings", "dashboard")];
@@ -66,7 +69,7 @@ public sealed class VectorWingsModule : IGameModule
     {
         var profile = await services.GetRequiredService<ProgressStore>().ProfileAsync(accountId, ct);
         return profile.Matches == 0 ? null : new GameProfile(profile.Missions + 1,
-            $"{profile.Missions}/4 Missionen · {profile.BestScore:N0} Punkte");
+            $"{profile.Missions}/4 Missionen · {profile.Medals.Length} Medaillen · {profile.BestScore:N0} Punkte");
     }
 
     public async Task AccountDeletedAsync(IServiceProvider services, long accountId, CancellationToken ct)

@@ -42,11 +42,11 @@
 @if (Model.View is not ("live" or "players"))
 {
     <h2>Letzte Ergebnisse</h2>
-    <md-table><thead><tr><th>ID</th><th>Modus</th><th>Mission</th><th>Ergebnis</th><th>Piloten</th><th>Datum (UTC)</th></tr></thead><tbody>
+    <md-table><thead><tr><th>ID</th><th>Modus</th><th>Mission</th><th>Ergebnis</th><th>Medaille</th><th>Piloten</th><th>Datum (UTC)</th></tr></thead><tbody>
     @foreach (var result in Model.Results)
     {
-        <tr><td>@result.Id</td><td>@result.Mode</td><td>@(result.Mission < 0 ? Missions.Arena.Name : Missions.Campaign[result.Mission].Name)</td>
-            <td>@(result.Success switch {true => "Gewonnen", false => "Verloren", null => "Abgebrochen"})</td>
+        <tr><td>@result.Id</td><td>@result.Mode</td><td>@Levels.NameOf(result.Mission)</td>
+            <td>@(result.Success switch {true => "Gewonnen", false => "Verloren", null => "Abgebrochen"})</td><td>@(result.Medal ? "Ja" : "–")</td>
             <td>@result.Participants</td><td>@result.Date.ToString("dd.MM.yyyy HH:mm")</td></tr>
     }
     </tbody></md-table>
@@ -54,10 +54,10 @@
 @if (Model.View is not ("live" or "history"))
 {
     <h2>Spieler</h2>
-    <md-table><thead><tr><th>Name</th><th>Partien</th><th>Missionen</th><th>Bestwert</th></tr></thead><tbody>
+    <md-table><thead><tr><th>Name</th><th>Partien</th><th>Missionen</th><th>Medaillen</th><th>Bestwert</th></tr></thead><tbody>
     @foreach (var player in Model.Players)
     {
-        <tr><td>@player.Name</td><td>@player.Progress.Matches</td><td>@player.Progress.Missions</td><td>@player.Progress.BestScore</td></tr>
+        <tr><td>@player.Name</td><td>@player.Progress.Matches</td><td>@player.Progress.Missions</td><td>@player.Progress.Medals.Length</td><td>@player.Progress.BestScore</td></tr>
     }
     </tbody></md-table>
 }

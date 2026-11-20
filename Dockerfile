@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm ci
 COPY scripts/build-client.mjs scripts/
 COPY src/client src/client/
+COPY src/VectorWings.Core/Levels.json src/VectorWings.Core/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build

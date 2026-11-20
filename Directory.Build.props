@@ -6,7 +6,7 @@
     <Channel Condition="'$(Channel)' == ''">local</Channel>
     <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
     <BuildDate Condition="'$(BuildDate)' == ''">$([System.DateTime]::UtcNow.ToString('yyyyMMdd'))</BuildDate>
-    <Version>0.1.$(BuildNumber)</Version>
+    <Version>0.2.$(BuildNumber)</Version>
     <InformationalVersion>local-$(BuildDate)</InformationalVersion>
     <InformationalVersion Condition="'$(Channel)' == 'release'">$(Version)-$(BuildDate)</InformationalVersion>
     <InformationalVersion Condition="'$(Channel)' == 'nightly'">nightly-$(BuildNumber)-$(BuildDate)</InformationalVersion>

@@ -1,1 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <EmbeddedResource Include="Levels.json" LogicalName="VectorWings.Levels" />
+    <InternalsVisibleTo Include="VectorWings.Tests" />
+  </ItemGroup>
+</Project>

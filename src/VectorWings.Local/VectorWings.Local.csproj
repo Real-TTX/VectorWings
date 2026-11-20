@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="../../../MatGame/src/MatGame.Local/MatGame.Local.csproj" />
     <ProjectReference Include="../VectorWings.Core/VectorWings.Core.csproj" />
+    <InternalsVisibleTo Include="VectorWings.Tests" />
   </ItemGroup>
 </Project>

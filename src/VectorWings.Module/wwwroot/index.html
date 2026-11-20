@@ -2,81 +2,225 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="matgame-game" content="vectorwings">
 <meta content="" name="matgame-version" />
+<meta name="theme-color" content="#0f1726">
 <base href="/vectorwings/">
 <title>VectorWings</title>
 <link rel="icon" href="img/mark.svg">
 <link rel="stylesheet" href="flight.css">
-<script type="module" src="flight.js"></script>
+<script type="module" src="vendor/flight-bundle.js"></script>
 </head>
-<body>
-<canvas id="flight" aria-label="3D-Flugansicht"></canvas>
-<div id="shade"></div>
-<header id="masthead">
-    <a class="brand" href="./"><img src="img/mark.svg" alt=""> VECTORWINGS</a>
-    <div class="row"><span id="network">Verbindung wird geprüft</span><button id="sound" aria-pressed="true">Ton an</button><a id="portal" href="/">MatGame ↗</a></div>
-</header>
-<main id="menu">
-    <section class="intro">
-        <h1>Vector<span>Wings</span></h1>
-        <p>Flieg tief über bewohnte Welten, stell dich den Bossen und miss dich im Frachthafen.</p>
-        <p id="progress" hidden></p>
+<body class="menu" data-screen="press">
+<canvas id="flight" aria-label="3D-Ansicht"></canvas>
+<div id="vignette"></div>
+
+<div id="ui">
+    <div id="chips"><span class="chip" id="network">Verbinde …</span><span class="chip pilot" id="pilot-chip" hidden></span></div>
+
+    <section class="screen" id="screen-press">
+        <div class="logo big" aria-label="VectorWings">
+            <svg viewBox="0 0 640 220" aria-hidden="true"><defs><linearGradient id="bolt" x1="0" x2="1"><stop offset="0" stop-color="#ffb35c"/><stop offset="1" stop-color="#ff6a2a"/></linearGradient></defs>
+                <polygon points="430,40 640,0 520,70 600,64 380,160 470,92 410,96" fill="url(#bolt)"/></svg>
+            <h1><span>VECTOR</span><span>WINGS</span></h1>
+            <p class="tagline">EIN LOW-POLY-WELTRAUMSHOOTER</p>
+        </div>
+        <button class="press" id="press" data-nav data-default>START DRÜCKEN</button>
+        <small class="version" id="version"></small>
     </section>
-    <div class="panels">
-        <section class="panel" id="briefing">
-            <div class="heading"><h2>Flugplan</h2><span>1–4 Piloten</span></div>
-            <div class="row" id="modes" aria-label="Spielmodus">
-                <button data-mode="Campaign" aria-pressed="true">Kampagne</button><button data-mode="Cores" aria-pressed="false">Schildkerne</button><button data-mode="Timed" aria-pressed="false">Treffer auf Zeit</button>
-            </div>
-            <div class="route" id="missions">
-                <button class="mission river" data-mission="0" aria-pressed="true"><strong>Flusshafen</strong><small>Canyon und Frachtbrücke</small></button>
-                <button class="mission desert" data-mission="1" aria-pressed="false"><strong>Wüstenbahn</strong><small>Eskorte im Canyon</small></button>
-                <button class="mission orbit" data-mission="2" aria-pressed="false"><strong>Orbitalwerft</strong><small>Dockkorridor im Orbit</small></button>
-                <button class="mission city" data-mission="3" aria-pressed="false"><strong>Abendstadt</strong><small>Evakuierung über den Dächern</small></button>
-            </div>
-            <p id="rule" hidden></p>
-            <div class="row launch"><button class="primary" id="create" disabled>Lobby eröffnen</button><label id="bots-label"><input id="bots" type="checkbox" checked> Mit Bots auffüllen</label></div>
-        </section>
-        <section class="panel" id="online-panel">
-            <div class="heading"><h2>Partien</h2><button id="refresh" aria-label="Partien aktualisieren">↻</button></div>
+
+    <section class="screen" id="screen-pilot" hidden>
+        <div class="frame dialog">
+            <h2 class="title">PILOT MELDEN</h2>
             <form id="guest" hidden>
-                <p>Spiele mit deinem MatGame-Konto oder als Gast.</p>
-                <label>Pilotenname<input name="name" required maxlength="32" autocomplete="nickname"></label>
-                <div class="row launch"><button type="submit">Gastzugang</button><a href="/Account/Login?returnUrl=%2Fvectorwings%2F" id="login">Anmelden</a></div>
+                <label class="field">RUFNAME<input name="name" required maxlength="32" autocomplete="nickname" data-nav data-default></label>
+                <button type="submit" class="slab primary" data-nav>ALS GAST STARTEN</button>
+                <button type="button" class="slab" id="login" data-nav>MIT MATGAME-KONTO ANMELDEN</button>
+                <button type="button" class="slab" id="link" data-nav hidden>GERÄT VERKNÜPFEN</button>
             </form>
-            <form class="row join" id="join" hidden>
-                <label>Raumcode<input id="room-code" maxlength="6" required spellcheck="false"></label><button type="submit">Beitreten</button>
-            </form>
-            <div id="rooms"></div>
             <form id="server-form" hidden>
-                <label>MatGame-Server<input name="server" placeholder="https://games.matthix.de"></label>
-                <div class="row launch"><button type="submit">Verbinden</button><button type="button" id="offline">Offline spielen</button></div>
-                <button type="button" id="link" hidden>Gerät verknüpfen</button>
+                <label class="field">MATGAME-SERVER<input name="server" placeholder="https://games.matthix.de" data-nav></label>
+                <button type="submit" class="slab primary" data-nav>VERBINDEN</button>
+                <button type="button" class="slab" id="offline" data-nav>OFFLINE GEGEN DIE CREW</button>
             </form>
-        </section>
-        <section class="panel" id="lobby" hidden>
-            <div class="heading"><h2 id="lobby-title">Lobby</h2><strong id="lobby-code"></strong></div>
-            <p id="lobby-briefing"></p><ul id="lobby-pilots"></ul>
-            <div class="row"><button class="primary" id="launch">Starten</button><button id="lobby-leave">Verlassen</button></div>
-        </section>
-    </div>
-    <footer><span>WASD · Leertaste feuert · Umschalt beschleunigt · Strg bremst · Q rollt · C wechselt die Kamera</span><span>Gamepad · A feuert · RB beschleunigt · LB bremst · X rollt · Y wechselt die Kamera</span><small id="version"></small></footer>
-</main>
+            <p class="hint" id="pilot-hint"></p>
+        </div>
+    </section>
+
+    <section class="screen" id="screen-main" hidden>
+        <div class="logo small"><h1><span>VECTOR</span><span>WINGS</span></h1></div>
+        <nav class="menu-list" aria-label="Hauptmenü">
+            <button class="slab" data-nav data-go="campaign" data-default data-info="Vier Missionen auf der Sternenroute. Allein mit der Crew oder als Staffel mit bis zu vier Piloten."><b>KAMPAGNE</b></button>
+            <button class="slab" data-nav data-go="Battle" data-info="Arena-Duell: Jedes Schiff trägt drei Schildkerne. Treffer und Bomben zerstören einen, ein Boost-Rammstoß von hinten klaut ihn."><b>KERNJAGD</b></button>
+            <button class="slab" data-nav data-go="Timed" data-info="Drei Minuten Allrange-Gefecht. Jeder Abschuss zählt, nach dem Absturz geht es sofort weiter."><b>TREFFER AUF ZEIT</b></button>
+            <button class="slab" data-nav data-go="multi" id="menu-multi" data-info="Offene Staffeln beitreten oder einen Raumcode eingeben."><b>MULTIPLAYER</b></button>
+            <button class="slab" data-nav data-go="hangar" data-info="Wähle dein Schiff: Lanze, Sperber oder Bastion."><b>HANGAR</b></button>
+            <button class="slab" data-nav data-go="options" data-info="Lautstärke, Steuerung, Kamera und Grafik."><b>OPTIONEN</b></button>
+            <button class="slab" data-nav data-go="help" data-info="Alle Tasten für Tastatur, Gamepad und Touch."><b>STEUERUNG</b></button>
+            <button class="slab" data-nav data-go="pilot" id="menu-server" hidden data-info="MatGame-Server wählen oder offline spielen."><b>SERVER</b></button>
+        </nav>
+        <div class="frame info"><p id="menu-info"></p><p class="stats" id="progress"></p></div>
+    </section>
+
+    <section class="screen" id="screen-multi" hidden>
+        <h2 class="title">MULTIPLAYER</h2>
+        <div class="multi-grid">
+            <div class="frame">
+                <h3>OFFENE STAFFELN</h3>
+                <div id="rooms" class="list"></div>
+            </div>
+            <form class="frame" id="join">
+                <h3>RAUMCODE</h3>
+                <input id="room-code" maxlength="6" required spellcheck="false" autocomplete="off" placeholder="······" data-nav>
+                <button type="submit" class="slab primary" data-nav>BEITRETEN</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="screen" id="screen-map" hidden>
+        <div class="map-head"><span class="title">STERNENROUTE</span><span class="sub" id="map-world"></span></div>
+        <div id="map-badges"></div>
+        <div class="map-banner frame">
+            <div class="map-index" id="mission-index"></div>
+            <div class="map-text">
+                <h3 id="mission-name"></h3>
+                <p class="sub" id="mission-sub"></p>
+                <p class="facts"><span>BOSS <b id="mission-boss"></b></span><span>BESTWERT <b id="mission-best">–</b></span><span>MEDAILLE <b id="mission-medal"></b></span></p>
+            </div>
+            <div class="map-actions">
+                <button class="slab primary" id="create" data-nav data-default>STARTEN</button>
+                <label class="toggle" id="bots-label"><input id="bots" type="checkbox" checked data-nav> CREW FLIEGT MIT</label>
+            </div>
+        </div>
+    </section>
+
+    <section class="screen" id="screen-hangar" hidden>
+        <h2 class="title">HANGAR</h2>
+        <div class="hangar">
+            <button class="arrow" id="ship-prev" data-nav aria-label="Voriges Schiff">◀</button>
+            <div class="frame ship-card">
+                <small id="ship-model"></small>
+                <h3 id="ship-name"></h3>
+                <p id="ship-text"></p>
+                <div class="stats">
+                    <span>TEMPO</span><i><b id="stat-speed"></b></i>
+                    <span>FEUERKRAFT</span><i><b id="stat-power"></b></i>
+                    <span>WENDIGKEIT</span><i><b id="stat-agility"></b></i>
+                    <span>SCHILD</span><i><b id="stat-shield"></b></i>
+                </div>
+                <button class="slab primary" id="ship-choose" data-nav data-default>DIESES SCHIFF FLIEGEN</button>
+            </div>
+            <button class="arrow" id="ship-next" data-nav aria-label="Nächstes Schiff">▶</button>
+        </div>
+    </section>
+
+    <section class="screen" id="screen-lobby" hidden>
+        <div class="lobby-head"><h2 class="title" id="lobby-title">STAFFEL</h2><div class="code-box"><small>RAUMCODE</small><strong id="lobby-code"></strong></div></div>
+        <p class="briefing frame" id="lobby-briefing"></p>
+        <ul id="lobby-pilots"></ul>
+        <div class="lobby-actions">
+            <button class="slab primary" id="launch" data-nav data-default>STARTEN</button>
+            <button class="slab" data-nav data-go="hangar">SCHIFF WÄHLEN</button>
+            <button class="slab" id="lobby-leave" data-nav>VERLASSEN</button>
+        </div>
+        <p class="hint" id="lobby-hint"></p>
+    </section>
+
+    <section class="screen" id="screen-options" hidden>
+        <h2 class="title">OPTIONEN</h2>
+        <div class="frame settings">
+            <label class="row-option">EFFEKTE<input type="range" id="set-volume" min="0" max="100" data-nav data-default></label>
+            <label class="row-option">MUSIK<input type="range" id="set-music" min="0" max="100" data-nav></label>
+            <label class="row-option toggle"><input type="checkbox" id="set-invert" data-nav> HÖHENRUDER UMKEHREN</label>
+            <label class="row-option toggle"><input type="checkbox" id="set-cockpit" data-nav> COCKPIT-KAMERA</label>
+            <label class="row-option">GRAFIK<select id="set-quality" data-nav><option value="auto">AUTOMATISCH</option><option value="high">HOCH</option><option value="medium">MITTEL</option><option value="low">NIEDRIG</option></select></label>
+            <button class="slab" id="sound" data-nav>TON AN</button>
+            <button class="slab" id="portal" data-nav>ZUM MATGAME-PORTAL</button>
+            <p class="hint">Die Grafikstufe gilt nach dem nächsten Neuladen.</p>
+        </div>
+    </section>
+
+    <section class="screen" id="screen-help" hidden>
+        <h2 class="title">STEUERUNG</h2>
+        <div class="frame help">
+            <table>
+                <tr><th></th><th>TASTATUR</th><th>GAMEPAD</th><th>TOUCH</th></tr>
+                <tr><td>Steuern</td><td>WASD / Pfeile</td><td>Linker Stick</td><td>Stick</td></tr>
+                <tr><td>Laser (halten = Dauerfeuer)</td><td>Leertaste</td><td>A</td><td>Feuer</td></tr>
+                <tr><td>Zielsuchschuss</td><td>F halten, loslassen</td><td>X halten</td><td>Lock</td></tr>
+                <tr><td>Smart-Bombe (nochmal = zünden)</td><td>B</td><td>B</td><td>Bombe</td></tr>
+                <tr><td>Boost / Bremse</td><td>Umschalt / Strg</td><td>RB / LB</td><td>Boost / Bremse</td></tr>
+                <tr><td>Fassrolle (antippen) / Neigen (halten)</td><td>Q / E</td><td>LT / RT</td><td>Rolle</td></tr>
+                <tr><td>Looping / Wende</td><td>R</td><td>Y</td><td>Looping</td></tr>
+                <tr><td>Kamera · Pause</td><td>C · Esc</td><td>Back · Start</td><td>II</td></tr>
+            </table>
+            <p class="hint">Silberring +30 Schild · Goldring +30, jeder dritte ein Extraleben · grüner Leuchtring +50 · rote Kapsel Bombe · blaue Kapsel Laserstufe</p>
+        </div>
+    </section>
+
+    <div id="prompts"></div>
+</div>
+
 <p id="notice" role="status" aria-live="polite"></p>
+
 <section id="hud" aria-label="Instrumente" hidden>
-    <div id="cockpit" aria-hidden="true"></div>
-    <div class="hud-head">
-        <div><strong id="hud-name"></strong><div id="hud-shield"></div><small id="hud-weapon"></small></div>
-        <div id="boss-hud" hidden><strong id="boss-name"></strong><progress id="boss-health" aria-label="Boss"></progress><small id="boss-phase"></small></div>
-        <div class="score"><small>PUNKTE</small><strong id="hud-score"></strong><span id="hud-time"></span></div>
+    <div class="hud-top">
+        <div class="hud-left">
+            <div class="pilot-card"><i id="hud-portrait" class="portrait"></i>
+                <div class="pilot-data"><div class="line"><b id="hud-lives">×3</b><span id="hud-laser">LASER</span></div>
+                    <div class="shield"><i id="hud-shield"></i></div>
+                    <div class="line small"><span>BOMBEN <b id="hud-bombs"></b></span><span id="hud-cores" hidden></span></div></div></div>
+            <div id="hud-wing"></div>
+        </div>
+        <div id="hud-boss" hidden><div class="boss-line"><strong id="boss-name"></strong><small id="boss-phase"></small></div><div class="boss-bar"><i id="boss-bar"></i><span>BOSS</span></div></div>
+        <div id="hud-timer" hidden></div>
+        <div class="hud-score"><div><small>SCORE</small><strong id="hud-score">000000</strong></div><div class="hits"><small>TREFFER</small><b id="hud-hits">000</b></div></div>
     </div>
-    <div id="reticle" aria-hidden="true"></div>
-    <div class="hud-foot"><div id="radio"></div><span class="hud-actions"><button id="camera" aria-pressed="false">Cockpit [C]</button><button id="quit">Verlassen</button></span></div>
+    <div id="reticle-near" class="reticle near" hidden></div>
+    <div id="reticle-far" class="reticle far" hidden></div>
+    <div id="lock" hidden></div>
+    <div id="tags"></div>
+    <div id="popups"></div>
+    <div id="card" hidden><strong id="card-title"></strong><span id="card-sub"></span></div>
+    <div class="hud-bottom">
+        <div id="comm" hidden><i id="comm-portrait" class="portrait"></i><div><b id="comm-name"></b><p id="comm-text"></p></div></div>
+        <div class="meters"><div class="meter"><i id="hud-meter"></i></div><div class="meter charge" hidden><i id="hud-charge"></i></div></div>
+        <div id="radar" hidden></div>
+    </div>
+    <div id="touch-controls">
+        <div id="stick"><i></i></div>
+        <div class="touch-buttons">
+            <button type="button" data-action="fire" class="big">FEUER</button>
+            <button type="button" data-action="charge">LOCK</button>
+            <button type="button" data-action="bomb">BOMBE</button>
+            <button type="button" data-action="boost">BOOST</button>
+            <button type="button" data-action="brake">BREMSE</button>
+            <button type="button" data-action="roll">ROLLE</button>
+            <button type="button" data-action="loop">LOOP</button>
+        </div>
+        <button type="button" id="touch-pause" aria-label="Pause">II</button>
+    </div>
 </section>
-<section id="result" class="panel" aria-labelledby="result-title" hidden>
-    <h2 id="result-title"></h2><p id="result-detail"></p><button class="primary" id="result-close">Zum Flugplan</button>
+<div id="damage"></div>
+<div id="flashbars" aria-hidden="true"><i></i><i></i></div>
+
+<section id="pause" class="overlay" hidden>
+    <div class="frame dialog"><h2 class="title">PAUSE</h2><p class="hint">Die Partie läuft für alle anderen weiter.</p>
+        <button class="slab primary" id="resume" data-nav data-default>WEITERFLIEGEN</button>
+        <button class="slab" id="pause-camera" data-nav>KAMERA WECHSELN</button>
+        <button class="slab" id="quit" data-nav>PARTIE VERLASSEN</button></div>
+</section>
+
+<section id="result" class="overlay" hidden>
+    <div class="frame result-panel">
+        <small id="result-kicker"></small>
+        <h2 id="result-title"></h2>
+        <div class="result-row"><div class="rank" id="result-rank"></div><div class="tally" id="result-tally"></div></div>
+        <table id="result-table"></table>
+        <p id="result-medal" hidden>MEDAILLE ERFLOGEN</p>
+        <button class="slab primary" id="result-close" data-nav data-default>WEITER</button>
+    </div>
 </section>
 </body>
 </html>

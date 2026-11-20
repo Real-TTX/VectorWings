@@ -32,7 +32,7 @@ jobs:
           version="local-$date"
           if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
             case "$BRANCH" in
-              main) channel=release; version="0.1.$BUILD-$date" ;;
+              main) channel=release; version="0.2.$BUILD-$date" ;;
               dev) channel=nightly; version="nightly-$BUILD-$date" ;;
             esac
           fi
@@ -55,7 +55,7 @@ jobs:
         run: |
           npm ci
           npm run build
-          node --check src/VectorWings.Module/wwwroot/flight.js
+          node --check src/VectorWings.Module/wwwroot/vendor/flight-bundle.js
           dotnet test -c Release
       - name: Build Windows package
         working-directory: VectorWings
